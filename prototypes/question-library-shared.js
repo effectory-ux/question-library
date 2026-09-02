@@ -327,11 +327,27 @@ window.QL = (function () {
      custom questions people create in surveys land in an incoming list until
      the coordinator adds them to the library. ── */
   var INBOX = [
+    /* a support cluster, a workload cluster and a finding-things cluster sit
+       in here — the similar-question suggestions find them */
     { text: "I feel supported by my manager", type: "L", by: "Rob Janssen", added: "14 Jan 2026", uses: 4 },
     { text: "My manager supports me when needed", type: "L", by: "Fatima el Idrissi", added: "3 Feb 2026", uses: 2 },
     { text: "I get enough support from my manager", type: "L", by: "Sanne de Boer", added: "19 Feb 2026", uses: 1 },
+    { text: "My workload is realistic", type: "L", by: "Priya Sharma", added: "11 Mar 2026", uses: 5 },
+    { text: "The amount of work I have is realistic", type: "L", by: "Tom Verhoeven", added: "2 Jun 2026", uses: 2 },
+    { text: "I can handle my current workload", type: "L", by: "Lisa Vermeer", added: "18 Aug 2026", uses: 1 },
+    { text: "I can quickly find the information I need for my work", type: "L", by: "Milan Kovács", added: "9 Apr 2026", uses: 3 },
+    { text: "I know where to find the information I need", type: "L", by: "Sanne de Boer", added: "22 Jul 2026", uses: 1 },
     { text: "My team has enough budget to organize team activities", type: "L", by: "Lisa Vermeer", added: "28 Aug 2026", uses: 3 },
-    { text: "I can easily find the sales materials I need", type: "L", by: "Ruben Bakker", added: "29 Aug 2026", uses: 1 }
+    { text: "I can easily find the sales materials I need", type: "L", by: "Ruben Bakker", added: "29 Aug 2026", uses: 1 },
+    { text: "I feel safe to report unsafe situations on the work floor", type: "L", by: "Tom Verhoeven", added: "19 Mar 2026", uses: 4 },
+    { text: "The onboarding of new colleagues in our team goes well", type: "L", by: "Fatima el Idrissi", added: "5 Feb 2026", uses: 2 },
+    { text: "I had a good work-life balance this quarter", type: "L", by: "Fatima el Idrissi", added: "16 Jul 2026", uses: 2 },
+    { text: "Our quarterly goals are achievable", type: "L", by: "Rob Janssen", added: "12 Jun 2026", uses: 2 },
+    { text: "I have the right access rights to the systems I need", type: "L", by: "Milan Kovács", added: "26 Feb 2026", uses: 1 },
+    { text: "The travel policy for client visits is clear", type: "L", by: "Priya Sharma", added: "30 Apr 2026", uses: 1 },
+    { text: "The canteen offers enough vegetarian options", type: "L", by: "Sanne de Boer", added: "14 May 2026", uses: 1 },
+    { text: "What would make our internal newsletter more useful?", type: "T", by: "Rob Janssen", added: "8 Jan 2026", uses: 1 },
+    { text: "How could we improve our Friday knowledge sessions?", type: "T", by: "Milan Kovács", added: "21 Aug 2026", uses: 1 }
   ];
   /* promotions persist for the session, so a question added from the incoming
      list is really in the library afterwards */

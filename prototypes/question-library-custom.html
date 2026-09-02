@@ -19,13 +19,7 @@
     .ib-intro { margin: 0 0 var(--spacing-base); color: var(--content-secondary); }
     .ib-meta { display: block; margin-top: var(--spacing-extra-tight); font-size: 12px; color: var(--content-secondary); }
     .ib-row .btn { flex: none; }
-    /* the combine suggestion: a card of near-duplicates above the list */
-    .ib-cluster { padding: var(--spacing-base); margin-bottom: var(--spacing-base); }
-    .ib-cluster-head { display: flex; align-items: center; gap: var(--spacing-tight); margin-bottom: var(--spacing-extra-tight); }
-    .ib-cluster-head i[data-icon] { width: 16px; height: 16px; display: flex; color: var(--content-brand, var(--content-primary)); }
-    .ib-cluster-note { margin: 0 0 var(--spacing-base-tight); font-size: 14px; color: var(--content-secondary); }
-    .ib-cluster-actions { display: flex; gap: var(--spacing-tight); margin-top: var(--spacing-base-tight); }
-    /* combine dialog: pick the main wording */
+    /* suggestion stepper: pick the main wording, one group at a time */
     .cmb-opt { display: flex; align-items: flex-start; gap: var(--spacing-tight); width: 100%; padding: var(--spacing-base-tight);
       border: 1px solid var(--border-primary); border-radius: 8px; background: var(--bg-base); cursor: pointer; text-align: left; font: inherit; }
     .cmb-opt + .cmb-opt { margin-top: var(--spacing-tight); }
@@ -107,8 +101,18 @@
         </div>
       </div>
 
-      <!-- Combine suggestions -->
-      <div id="clusters"></div>
+      <!-- Similar-question suggestions: a banner that opens the step-through review -->
+      <div class="inline-notif is-info is-one-liner" id="simNotif" role="status" hidden>
+        <img class="inline-notif-icon" src="assets/icons/notification-information.svg" alt="" />
+        <div class="inline-notif-content">
+          <span class="inline-notif-text">
+            <span class="inline-notif-title" id="simTitle"></span>
+          </span>
+          <div class="inline-notif-actions">
+            <button class="btn btn-secondary" id="btnSuggest">Review suggestions</button>
+          </div>
+        </div>
+      </div>
 
       <!-- The incoming list -->
       <div class="q-topic">
@@ -130,7 +134,6 @@
 (function () {
   "use strict";
   var listEl = document.getElementById("inboxList");
-  var clustersEl = document.getElementById("clusters");
   var noResults = document.getElementById("noResults");
   var emptyInbox = document.getElementById("emptyInbox");
   var term = "";
@@ -158,32 +161,17 @@
   }
 
   function render() {
+    /* the suggestions live behind a banner: the list itself stays complete */
     var clusters = findClusters();
-    var inCluster = {};
-    clusters.forEach(function (g) { g.forEach(function (q) { inCluster[q.text] = true; }); });
+    var simNotif = document.getElementById("simNotif");
+    simNotif.hidden = !clusters.length;
+    if (clusters.length) {
+      document.getElementById("simTitle").textContent = clusters.length === 1
+        ? "1 group of questions looks similar"
+        : clusters.length + " groups of questions look similar";
+    }
 
-    clustersEl.innerHTML = term ? "" : clusters.map(function (g, gi) {
-      return '<div class="card card-outlined ib-cluster" data-g="' + gi + '">' +
-        '<div class="ib-cluster-head"><i data-icon="lightbulb"></i><h2 class="text-l5">These questions look similar</h2></div>' +
-        '<p class="ib-cluster-note">Combine them into one library question — the different wordings become variants.</p>' +
-        '<div class="q-list">' +
-        g.map(function (q) {
-          return '<div class="q-row">' +
-            '<div class="text-medium text-w500 q-text" style="flex:1;">' + QL.esc(q.text) +
-            '<span class="ib-meta text-w400">' + uses(q) + " · " + QL.esc(q.by) + " · Added " + QL.esc(q.added) + "</span></div>" +
-            QL.scaleChip(q.type) + "</div>";
-        }).join("") +
-        "</div>" +
-        '<div class="ib-cluster-actions">' +
-        '<button class="btn btn-secondary" data-combine="' + gi + '">Combine into one question</button>' +
-        '<button class="btn btn-tertiary" data-separate="' + gi + '">Keep separate</button>' +
-        "</div></div>";
-    }).join("");
-
-    var shown = items.filter(function (q) {
-      if (term) return QL.matches(q.text, term);
-      return !inCluster[q.text];
-    });
+    var shown = items.filter(function (q) { return QL.matches(q.text, term); });
     document.getElementById("ibCount").textContent = items.length;
     listEl.innerHTML = shown.map(function (q) {
       var i = items.indexOf(q);
@@ -197,15 +185,6 @@
     noResults.hidden = !term || !!shown.length;
     emptyInbox.hidden = !!items.length;
 
-    clustersEl.querySelectorAll("[data-combine]").forEach(function (b) {
-      b.addEventListener("click", function () { combineDialog(clusters[+b.getAttribute("data-combine")]); });
-    });
-    clustersEl.querySelectorAll("[data-separate]").forEach(function (b) {
-      b.addEventListener("click", function () {
-        clusters[+b.getAttribute("data-separate")].forEach(function (q) { dismissed[q.text] = true; });
-        render();
-      });
-    });
     listEl.querySelectorAll("[data-promote]").forEach(function (b) {
       b.addEventListener("click", function () { promoteDialog(items[+b.getAttribute("data-promote")]); });
     });
@@ -257,46 +236,89 @@
     );
   }
 
-  /* ── combine near-duplicates into one library question with variants ── */
-  function combineDialog(group) {
+  /* ── the suggestion stepper: one group at a time, Figma-component-update
+     style — pick a resolution, move to the next, until everything is done ── */
+  function suggestDialog() {
+    var groups = findClusters();
+    if (!groups.length) return;
+    var idx = 0, combined = 0, keptGroups = 0;
     var overlay = QL.openOverlay(
-      '<div class="overlay"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="cm-title" style="width: 640px;">' +
+      '<div class="overlay"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="sg-title" style="width: min(640px, calc(100vw - 32px));">' +
       '<button class="dialog-close" aria-label="Close" data-close><i data-icon="cross"></i></button>' +
-      '<div class="dialog-header"><div class="dialog-header-top"><h3 class="dialog-title" id="cm-title">Combine into one question</h3></div>' +
+      '<div class="dialog-header"><div class="dialog-header-top"><h3 class="dialog-title" id="sg-title">These questions look similar</h3></div>' +
       '<p class="dialog-subtitle">Choose the main wording. The other wordings become variants of the same library question. Results stay with the wording they were collected under.</p></div>' +
-      '<div class="dialog-body"><div id="cmOpts" role="radiogroup" aria-label="Main wording"></div><div id="cmTopic"></div></div>' +
-      '<div class="dialog-footer"><button class="btn btn-secondary" data-close>Cancel</button>' +
-      '<button class="btn btn-primary" id="cmGo">Combine and add</button></div>' +
+      '<div class="dialog-body"><div id="sgOpts" role="radiogroup" aria-label="Main wording"></div><div id="sgTopic"></div></div>' +
+      '<div class="dialog-footer">' +
+      '<span class="text-medium" id="sgCount" style="margin-right: auto; color: var(--content-secondary);"></span>' +
+      '<button class="btn btn-secondary" id="sgKeep">Keep separate</button>' +
+      '<button class="btn btn-primary" id="sgGo">Combine and add</button></div>' +
       "</div></div>"
     );
-    var pick = 0; // default: the most-used wording (group is usage-sorted)
-    var opts = overlay.querySelector("#cmOpts");
-    function renderOpts() {
-      opts.innerHTML = group.map(function (q, i) {
-        return '<button type="button" class="cmb-opt' + (i === pick ? " is-on" : "") + '" role="radio" aria-checked="' + (i === pick) + '" data-p="' + i + '">' +
-          '<span class="rb-wrap"><input type="radio" class="rb" name="cmb" ' + (i === pick ? "checked" : "") + ' tabindex="-1" /></span>' +
-          '<span class="text-medium text-w500">' + QL.esc(q.text) +
-          '<span class="cmb-opt-meta text-w400">' + uses(q) + " · " + QL.esc(q.by) + "</span></span></button>";
-      }).join("");
-      opts.querySelectorAll("[data-p]").forEach(function (b) {
-        b.addEventListener("click", function () { pick = +b.getAttribute("data-p"); renderOpts(); });
-      });
+    var opts = overlay.querySelector("#sgOpts");
+    var topicMount = overlay.querySelector("#sgTopic");
+    var pick = 0, topic = null;
+
+    function renderStep() {
+      var group = groups[idx];
+      pick = 0; /* default: the most-used wording (groups are usage-sorted) */
+      overlay.querySelector("#sgCount").textContent = "Suggestion " + (idx + 1) + " of " + groups.length;
+      function renderOpts() {
+        opts.innerHTML = group.map(function (q, i) {
+          return '<button type="button" class="cmb-opt' + (i === pick ? " is-on" : "") + '" role="radio" aria-checked="' + (i === pick) + '" data-p="' + i + '">' +
+            '<span class="rb-wrap"><input type="radio" class="rb" name="cmb" ' + (i === pick ? "checked" : "") + ' tabindex="-1" /></span>' +
+            '<span class="text-medium text-w500">' + QL.esc(q.text) +
+            '<span class="cmb-opt-meta text-w400">' + uses(q) + " · " + QL.esc(q.by) + "</span></span></button>";
+        }).join("");
+        opts.querySelectorAll("[data-p]").forEach(function (b) {
+          b.addEventListener("click", function () { pick = +b.getAttribute("data-p"); renderOpts(); });
+        });
+      }
+      renderOpts();
+      topicMount.innerHTML = "";
+      topic = topicRow(topicNames[0]);
+      topicMount.appendChild(topic.el);
+      if (window.Icons) window.Icons.render();
     }
-    renderOpts();
-    var topic = topicRow(topicNames[0]);
-    overlay.querySelector("#cmTopic").appendChild(topic.el);
-    if (window.Icons) window.Icons.render();
-    overlay.querySelector("#cmGo").addEventListener("click", function () {
+
+    function next() {
+      idx++;
+      if (idx >= groups.length) finish();
+      else renderStep();
+    }
+    function finish() {
+      QL.closeOverlay(overlay);
+      render();
+      if (combined && keptGroups) {
+        QL.notify("Suggestions reviewed",
+          combined + (combined === 1 ? " question" : " questions") + " added to the library with variants, " +
+          keptGroups + (keptGroups === 1 ? " group" : " groups") + " kept separate. Publish to make the new questions available to everyone.");
+      } else if (combined) {
+        QL.notify(combined === 1 ? "1 question added to the library" : combined + " questions added to the library",
+          "Each one combines the similar wordings as variants. Publish to make them available to everyone.");
+      } else if (keptGroups) {
+        QL.notify("Suggestions reviewed", "You kept the questions separate. They stay in this list.");
+      }
+    }
+
+    overlay.querySelector("#sgKeep").addEventListener("click", function () {
+      groups[idx].forEach(function (q) { dismissed[q.text] = true; });
+      keptGroups++;
+      next();
+    });
+    overlay.querySelector("#sgGo").addEventListener("click", function () {
+      var group = groups[idx];
       var main = group[pick];
       var variants = group.filter(function (q) { return q !== main; }).map(function (q) { return q.text; });
       QL.libAdd({ text: main.text, type: main.type, topic: topic.value(), added: "Today", usedIn: [], variants: variants });
       removeFromInbox(group.map(function (q) { return q.text; }));
       QL.trackChange("Combined " + group.length + " questions into “" + short(main.text) + "”");
-      QL.closeOverlay(overlay);
-      QL.notify("Questions combined", "Added to the library as one question with " + variants.length + " variants. Publish to make it available to everyone.");
-      render();
+      combined++;
+      next();
     });
+
+    renderStep();
   }
+  document.getElementById("btnSuggest").addEventListener("click", suggestDialog);
 
   document.getElementById("ibSearch").addEventListener("input", function (e) { term = e.target.value.trim(); render(); });
 
