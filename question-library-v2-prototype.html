@@ -1,0 +1,1212 @@
+<meta charset="utf-8">
+<title>Question library v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap">
+<style>
+  /* ── Committed light theme: faithful recreation of the live My Effectory UI ── */
+  :root{
+    --ink:#26374b;            /* headings, strong text */
+    --text:#54677a;           /* body text */
+    --text-soft:#8494a5;      /* meta text */
+    --teal:#0e8478;           /* primary accent */
+    --teal-dark:#0b6d63;
+    --teal-soft:#e3f1ef;      /* active nav bg, badges */
+    --border:#e3e8ed;
+    --border-soft:#eef1f4;
+    --bg:#ffffff;
+    --bg-soft:#f7f9fa;
+    --warn-bg:#fbeee1;
+    --warn-border:#eccfa9;
+    --beta:#4d5fd3;
+    --pill:#eef1f4;
+    --hl:#ffe59e;
+    --red:#c4534f;
+    --yellow:#f5c644;
+    --shadow:0 10px 40px rgba(38,55,75,.18);
+    --radius:8px;
+    --font-head:'Nunito',ui-rounded,'Segoe UI',sans-serif;
+    --font-body:'Source Sans 3','Segoe UI',Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg);color:var(--text);
+    font:400 15px/1.55 var(--font-body);
+    -webkit-font-smoothing:antialiased;
+  }
+  button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+  h1,h2,h3{font-family:var(--font-head);color:var(--ink);text-wrap:balance}
+  ::placeholder{color:#a3b0bd}
+  mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
+
+  .app{display:grid;grid-template-columns:178px 1fr;min-height:100vh}
+
+  /* ── Sidebar ── */
+  .sidebar{
+    border-right:1px solid var(--border);display:flex;flex-direction:column;
+    position:sticky;top:0;height:100vh;background:var(--bg);z-index:5;
+  }
+  .side-brand{display:flex;align-items:center;gap:10px;padding:16px 14px 18px}
+  .brand-mark{
+    width:28px;height:28px;border-radius:8px;background:var(--yellow);
+    display:grid;place-items:center;flex:none;
+  }
+  .brand-mark svg{display:block}
+  .side-brand b{font-family:var(--font-head);font-weight:800;font-size:15px;color:var(--ink)}
+  .nav{display:flex;flex-direction:column;gap:2px;padding:0 8px}
+  .nav-item{
+    display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;
+    font-size:14px;color:var(--ink);text-align:left;width:100%;
+  }
+  .nav-item svg{flex:none;color:#5b6d80}
+  .nav-item .chev{margin-left:auto}
+  .nav-item:hover{background:var(--bg-soft)}
+  .nav-sub{display:flex;flex-direction:column;gap:2px}
+  .nav-sub .nav-item{padding-left:38px;color:var(--text)}
+  .nav-sub .nav-item.active{background:var(--teal-soft);color:var(--ink);font-weight:600}
+  .side-foot{margin-top:auto;padding:10px 8px 14px;display:flex;flex-direction:column;gap:2px}
+  .side-user{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px}
+  .side-user:hover{background:var(--bg-soft)}
+  .avatar{
+    width:26px;height:26px;border-radius:50%;background:var(--teal-soft);color:var(--teal-dark);
+    display:grid;place-items:center;font:700 10px var(--font-body);flex:none;
+  }
+  .side-user div{min-width:0}
+  .side-user b{display:block;font-size:13px;color:var(--ink);font-weight:600}
+  .side-user span{display:block;font-size:11px;color:var(--text-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .side-user .chev{margin-left:auto;color:#5b6d80}
+
+  /* ── Main column ── */
+  .main{min-width:0}
+  .crumbbar{
+    display:flex;align-items:center;gap:14px;padding:14px 28px;border-bottom:1px solid var(--border-soft);
+  }
+  .btn-back{
+    display:inline-flex;align-items:center;gap:7px;padding:6px 14px 6px 10px;
+    border:1px solid var(--border);border-radius:999px;font-size:13.5px;font-weight:600;color:var(--ink);
+  }
+  .btn-back:hover{background:var(--bg-soft)}
+  .crumb{font-size:13.5px;color:var(--ink)}
+  .crumb .sep{color:#c2ccd6;margin:0 8px}
+  .crumb .here{color:var(--text)}
+
+  .content{max-width:900px;margin:0 auto;padding:34px 28px 80px}
+
+  .page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+  .page-title{display:flex;align-items:center;gap:12px}
+  .page-title h1{font-size:29px;font-weight:800;letter-spacing:.1px}
+  .badge-beta{
+    background:var(--beta);color:#fff;font:700 10.5px/1 var(--font-body);
+    letter-spacing:.8px;padding:5px 8px;border-radius:5px;transform:translateY(2px);
+  }
+  .page-sub{margin-top:6px;font-size:14.5px}
+  .btn-ghost{
+    display:inline-flex;align-items:center;gap:8px;padding:9px 14px;white-space:nowrap;
+    border:1px solid var(--border);border-radius:var(--radius);font-size:13.5px;font-weight:600;color:var(--ink);
+  }
+  .btn-ghost:hover{background:var(--bg-soft)}
+
+  /* tabs */
+  .tabs{display:flex;gap:26px;margin-top:20px;border-bottom:1px solid var(--border-soft)}
+  .tab{
+    padding:10px 2px 11px;font-size:14px;color:var(--text);border-bottom:2.5px solid transparent;
+    margin-bottom:-1px;font-weight:400;
+  }
+  .tab:hover{color:var(--ink)}
+  .tab[aria-selected="true"]{color:var(--ink);font-weight:600;border-bottom-color:var(--teal)}
+
+  /* banners */
+  .banner-warn{
+    margin-top:22px;background:var(--warn-bg);border:1px solid var(--warn-border);
+    border-radius:var(--radius);padding:14px 18px;font-size:14px;color:var(--ink);
+  }
+  .banner-promo{
+    margin-top:14px;border:1px solid var(--border);border-radius:var(--radius);
+    display:flex;align-items:center;gap:12px;padding:10px 12px 10px 16px;font-size:14px;color:var(--ink);
+  }
+  .banner-promo .grow{flex:1}
+  .banner-promo .x{color:var(--ink);padding:6px;border-radius:6px}
+  .banner-promo .x:hover{background:var(--bg-soft)}
+  .play-ic{color:var(--ink);flex:none;display:grid;place-items:center}
+
+  /* toolbar (language + search + collapse) */
+  .toolbar{margin-top:22px}
+  .toolbar .lbl{font-size:13px;color:var(--text);display:inline-flex;align-items:center;gap:5px}
+  .info-dot{
+    width:14px;height:14px;border-radius:50%;border:1px solid #b7c2cd;color:#8494a5;
+    display:inline-grid;place-items:center;font:600 9.5px var(--font-body);cursor:help;position:relative;
+  }
+  .toolrow{display:flex;align-items:center;gap:10px;margin-top:7px}
+  .select{
+    position:relative;display:inline-flex;align-items:center;gap:8px;padding:8px 12px;
+    border:1px solid var(--border);border-radius:var(--radius);font-size:13.5px;color:var(--ink);cursor:pointer;
+  }
+  .select:hover{background:var(--bg-soft)}
+  .select .chev{color:#5b6d80}
+  .menu{
+    position:absolute;top:calc(100% + 6px);left:0;min-width:210px;background:var(--bg);
+    border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 8px 24px rgba(38,55,75,.14);
+    padding:5px;z-index:30;display:none;
+  }
+  .menu.open{display:block}
+  .menu button{
+    display:flex;align-items:center;gap:9px;width:100%;padding:9px 10px;border-radius:6px;
+    font-size:13.5px;color:var(--ink);text-align:left;
+  }
+  .menu button:hover{background:var(--bg-soft)}
+  .menu .check{margin-left:auto;color:var(--teal)}
+  .search{
+    margin-left:auto;display:flex;align-items:center;gap:8px;border:1px solid var(--border);
+    border-radius:var(--radius);padding:8px 12px;width:236px;color:var(--text-soft);
+    transition:box-shadow .15s,border-color .15s;
+  }
+  .search:focus-within{border-color:var(--teal);box-shadow:0 0 0 2px var(--teal-soft)}
+  .search input{border:none;outline:none;font:inherit;font-size:13.5px;color:var(--ink);width:100%;background:transparent}
+  .search .clear{color:#8494a5;display:none;padding:0}
+  .search.has .clear{display:block}
+  .btn-collapse{
+    display:inline-flex;align-items:center;gap:7px;padding:9px 13px;border:1px solid var(--border);
+    border-radius:var(--radius);font-size:13.5px;font-weight:600;color:var(--ink);
+  }
+  .btn-collapse:hover{background:var(--bg-soft)}
+
+  /* ── Overview tab ── */
+  .sec-head{display:flex;align-items:baseline;gap:14px;margin-top:34px}
+  .sec-head h2{font-size:22px;font-weight:800}
+  .sec-head .rule{width:2px;align-self:stretch;background:var(--teal);border-radius:2px}
+  .sec-head span{font-size:14px;color:var(--text-soft)}
+  .stats{
+    margin-top:18px;border:1px solid var(--border);border-radius:var(--radius);
+    display:grid;grid-template-columns:1fr 1fr 1fr;
+  }
+  .stat{padding:18px 20px}
+  .stat + .stat{border-left:1px solid var(--border-soft)}
+  .stat-top{display:flex;align-items:center;gap:11px}
+  .stat-ic{width:34px;height:34px;border-radius:8px;display:grid;place-items:center;flex:none}
+  .stat-ic.doc{background:#e7edfb;color:#4a6bd8}
+  .stat-ic.clip{background:#e4f0fa;color:#3d84c6}
+  .stat-ic.chat{background:#fbf1d9;color:#c9930f}
+  .stat-top b{font-family:var(--font-head);font-weight:800;font-size:15.5px;color:var(--ink)}
+  .stat-top .arrow{margin-left:auto;color:var(--teal);padding:4px;border-radius:6px}
+  .stat-top .arrow:hover{background:var(--teal-soft)}
+  .stat-rows{margin-top:14px;display:flex;flex-direction:column;gap:8px}
+  .stat-row{display:flex;align-items:center;justify-content:space-between;font-size:13.5px}
+  .stat-row .pill{
+    background:var(--pill);border-radius:6px;padding:2px 8px;font-size:12.5px;font-weight:600;color:var(--ink);
+    font-variant-numeric:tabular-nums;
+  }
+  .card{
+    margin-top:22px;border:1px solid var(--border);border-radius:var(--radius);
+  }
+  .card.half{max-width:430px}
+  .card-head{padding:16px 18px;border-bottom:1px solid var(--border-soft)}
+  .card-head b{font-family:var(--font-head);font-weight:800;font-size:15.5px;color:var(--ink)}
+  .card-body{padding:16px 18px;font-size:14px}
+  .err{color:var(--red)}
+
+  /* ── Themes & topics ── */
+  .setlist{display:flex;flex-direction:column;gap:14px;margin-top:20px}
+  .set{border:1px solid var(--border);border-radius:var(--radius)}
+  .set-head{
+    display:flex;align-items:center;gap:12px;padding:15px 18px;width:100%;text-align:left;
+  }
+  .set-head h3{font-size:16px;font-weight:800;flex:1;min-width:0}
+  .set-head .count{font-size:13px;color:var(--text-soft);white-space:nowrap}
+  .kind{
+    background:var(--pill);color:var(--ink);border-radius:6px;padding:3px 9px;
+    font-size:12px;font-weight:600;
+  }
+  .set-head .chev{color:var(--ink);transition:transform .18s}
+  .set.closed .set-head .chev{transform:rotate(180deg)}
+  .set-body{border-top:1px solid var(--border-soft);padding:18px}
+  .set.closed .set-body{display:none}
+  .set-about{display:grid;grid-template-columns:1fr 380px;gap:26px;margin-bottom:18px}
+  .set-about p + p{margin-top:12px}
+  .set-about p{font-size:14px}
+  .vid{
+    border-radius:6px;aspect-ratio:16/9;position:relative;overflow:hidden;cursor:pointer;
+    background:linear-gradient(135deg,#5ba898,#33756a 60%,#28615a);
+  }
+  .vid::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 62% 45%,rgba(255,255,255,.16),transparent 55%)}
+  .vid .vplay{
+    position:absolute;inset:0;margin:auto;width:52px;height:52px;border-radius:50%;
+    background:rgba(20,40,38,.55);display:grid;place-items:center;color:#fff;z-index:2;
+  }
+  .vid .vlogo{
+    position:absolute;top:10px;right:10px;width:26px;height:26px;border-radius:6px;background:var(--yellow);
+    display:grid;place-items:center;z-index:2;
+  }
+  .qs-lbl{font-size:13.5px;font-weight:700;color:var(--ink);font-family:var(--font-head)}
+  .qlist{margin-top:4px}
+  .qrow{
+    padding:12px 2px;border-bottom:1px solid var(--border-soft);font-size:14px;color:var(--ink);
+    display:flex;align-items:center;gap:14px;
+  }
+  .qrow:last-child{border-bottom:none}
+  .qrow .qtext{flex:1;min-width:0}
+
+  /* ── All questions ── */
+  .topic-group{margin-top:30px}
+  .topic-group h3{font-size:17px;font-weight:800}
+  .topic-group .qwrap{margin-top:10px;border:1px solid var(--border);border-radius:var(--radius);padding:0 16px}
+  .badge-std{
+    background:var(--teal-soft);color:var(--teal-dark);border-radius:6px;padding:3px 9px;
+    font-size:12px;font-weight:600;white-space:nowrap;
+  }
+  .qtype{
+    display:inline-flex;align-items:center;gap:7px;font-size:13.5px;color:var(--ink);
+    min-width:96px;position:relative;cursor:default;
+  }
+  .qtype svg{flex:none}
+  .no-results{margin-top:26px;font-size:14px}
+  .no-results b{color:var(--ink)}
+
+  /* ── Variables ── */
+  .vartable{margin-top:20px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+  .vartable table{width:100%;border-collapse:collapse;font-size:14px}
+  .vartable th{
+    text-align:left;font:600 11.5px var(--font-body);letter-spacing:.8px;text-transform:uppercase;
+    color:var(--text-soft);padding:13px 18px;border-bottom:1px solid var(--border-soft);
+  }
+  .vartable td{padding:13px 18px;color:var(--ink);border-bottom:1px solid var(--border-soft)}
+  .vartable tr:last-child td{border-bottom:none}
+  .vartable td.num{font-variant-numeric:tabular-nums}
+  .vartable .eye{color:#5b6d80;padding:5px;border-radius:6px;float:right}
+  .vartable .eye:hover{background:var(--bg-soft);color:var(--ink)}
+  .chip{
+    background:#dff0f6;color:#2c6e8a;border-radius:5px;padding:1px 7px;font-size:13px;
+  }
+
+  /* ── Modals ── */
+  .overlay{
+    position:fixed;inset:0;background:rgba(38,55,75,.45);z-index:50;
+    display:none;align-items:center;justify-content:center;padding:24px;
+  }
+  .overlay.open{display:flex}
+  .modal{
+    background:var(--bg);border-radius:12px;box-shadow:var(--shadow);
+    width:min(536px,100%);max-height:88vh;display:flex;flex-direction:column;overflow:hidden;
+  }
+  .modal-x{
+    position:absolute;top:14px;right:14px;color:var(--ink);padding:6px;border-radius:6px;z-index:3;
+  }
+  .modal-x:hover{background:rgba(38,55,75,.08)}
+  .modal-rel{position:relative}
+  .modal-body{padding:26px 34px;overflow-y:auto}
+  .modal-foot{padding:0 34px 24px;display:flex;justify-content:flex-end;gap:10px}
+  .btn-primary{
+    background:var(--teal);color:#fff;font-weight:600;font-size:13.5px;
+    padding:9px 16px;border-radius:var(--radius);
+  }
+  .btn-primary:hover{background:var(--teal-dark)}
+  .btn-plain{
+    padding:9px 16px;border-radius:var(--radius);font-weight:600;font-size:13.5px;color:var(--ink);
+    border:1px solid var(--border);
+  }
+  .btn-plain:hover{background:var(--bg-soft)}
+
+  /* welcome dialog illustration */
+  .welcome-art{
+    background:#f8dfa0;background:linear-gradient(180deg,#f7dd9c,#fbeecb);
+    padding:26px 0 0;height:150px;position:relative;overflow:hidden;flex:none;
+  }
+  .mini-card{
+    position:absolute;background:#fff;border-radius:8px;box-shadow:0 6px 18px rgba(38,55,75,.14);
+    padding:10px 14px;width:220px;
+  }
+  .mini-card b{display:flex;align-items:center;gap:7px;font:700 11px var(--font-head);color:var(--ink)}
+  .mini-line{height:6px;border-radius:3px;background:#e8edf2;margin-top:8px}
+  .mini-line.w60{width:60%}
+  .mini-line.w80{width:80%}
+  .mini-dot{position:absolute;width:10px;height:10px;border-radius:50%}
+  .modal h2{font-size:21px;font-weight:800}
+  .modal .beta-inline{vertical-align:3px;margin-left:8px}
+  .modal-body p{font-size:14px;margin-top:12px}
+  .modal-body p.lead{font-weight:700;color:var(--ink)}
+  .modal-body ul{margin:10px 0 0 20px;font-size:14px}
+  .modal-body li{margin-top:4px}
+
+  /* learn-more modal */
+  .modal.wide{width:min(830px,100%)}
+  .learn{display:grid;grid-template-columns:180px 1fr;min-height:0;flex:1}
+  .learn-nav{padding:30px 4px 30px 26px;display:flex;flex-direction:column;gap:14px;align-items:flex-start}
+  .learn-nav .ttl{font:800 15px var(--font-head);color:var(--ink);margin-bottom:6px}
+  .learn-nav button{font-size:13px;color:var(--text);text-align:left}
+  .learn-nav button.on{color:var(--ink);font-weight:600}
+  .learn-nav button:hover{color:var(--ink)}
+  .learn-art{padding:30px 34px;overflow-y:auto;min-height:0}
+  .learn-art h3{font-size:19px;font-weight:800;margin-top:28px}
+  .learn-art h3:first-child{margin-top:0}
+  .learn-art h4{
+    display:flex;align-items:center;gap:8px;font:700 14px var(--font-body);color:var(--ink);margin-top:20px;
+  }
+  .learn-art p{font-size:14px;margin-top:10px}
+  .learn-art .divider{border-top:1px solid var(--border-soft);margin-top:24px}
+
+  /* variable dialog */
+  .var-dialog .qrow{gap:0}
+  .var-dialog .modal-body{padding-bottom:10px}
+  .var-lbl{font-size:13px;color:var(--text);margin-top:14px}
+  .var-hint{font-size:13.5px;margin-top:2px}
+  .var-qhead{display:flex;align-items:center;gap:7px;margin-top:16px;font:700 13.5px var(--font-head);color:var(--ink)}
+  .var-qlist{max-height:290px;overflow-y:auto;margin-top:2px;padding-right:6px}
+
+  /* video modal */
+  .video-ph{
+    aspect-ratio:16/9;background:linear-gradient(135deg,#5ba898,#28615a);border-radius:8px;
+    display:grid;place-items:center;color:#eaf5f2;font-size:14px;text-align:center;padding:20px;
+  }
+
+  /* tooltip */
+  .tooltip{
+    position:fixed;z-index:80;background:#5c6b7a;color:#f2f5f7;border-radius:6px;
+    padding:8px 11px;font-size:12px;line-height:1.5;max-width:200px;pointer-events:none;
+    box-shadow:0 4px 14px rgba(38,55,75,.25);display:none;
+  }
+  .tooltip.on{display:block}
+
+  /* toast */
+  .toast{
+    position:fixed;bottom:26px;left:50%;transform:translate(-50%,12px);background:var(--ink);color:#fff;
+    padding:10px 18px;border-radius:8px;font-size:13.5px;opacity:0;transition:.25s;z-index:90;pointer-events:none;
+  }
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+
+  /* app chrome extras */
+  .fb-tab{
+    position:fixed;right:0;top:44%;background:#3aa08f;color:#fff;writing-mode:vertical-rl;
+    padding:16px 8px;border-radius:6px 0 0 6px;font-size:12.5px;font-weight:600;letter-spacing:.4px;
+    display:flex;align-items:center;gap:8px;z-index:20;
+  }
+  .ask-pill{
+    position:fixed;right:22px;bottom:20px;background:var(--bg);border:1px solid var(--border);
+    border-radius:999px;padding:8px 14px;display:flex;align-items:center;gap:8px;font-size:13px;
+    color:var(--ink);box-shadow:0 4px 14px rgba(38,55,75,.10);z-index:20;
+  }
+  .ask-pill .spark{color:var(--teal)}
+
+  @media (max-width:960px){
+    .app{grid-template-columns:1fr}
+    .sidebar{display:none}
+    .set-about{grid-template-columns:1fr}
+    .stats{grid-template-columns:1fr}
+    .stat + .stat{border-left:none;border-top:1px solid var(--border-soft)}
+    .fb-tab,.ask-pill{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none !important}
+  }
+</style>
+
+<div class="app">
+  <!-- ═══ Sidebar (app chrome, inert in this prototype) ═══ -->
+  <aside class="sidebar">
+    <div class="side-brand">
+      <span class="brand-mark">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5.4" r="3.1" stroke="#26374b" stroke-width="2.2"/><rect x="4" y="11.4" width="8" height="2.6" rx="1.3" fill="#26374b"/></svg>
+      </span>
+      <b>Coordinator</b>
+    </div>
+    <nav class="nav">
+      <button class="nav-item"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2.5 6.5 8 2l5.5 4.5V13a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1z"/></svg>Home</button>
+      <button class="nav-item"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="2" width="10" height="12" rx="1.5"/><path d="M5.5 5.5h5M5.5 8h5M5.5 10.5h3"/></svg>Surveys
+        <svg class="chev" width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2.5 7.5 6 4l3.5 3.5"/></svg>
+      </button>
+      <div class="nav-sub">
+        <button class="nav-item">All surveys</button>
+        <button class="nav-item active">Projects</button>
+      </div>
+      <button class="nav-item"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5v3h-3"/></svg>360 Feedback</button>
+      <button class="nav-item"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="4" r="2"/><circle cx="3.5" cy="12" r="1.8"/><circle cx="12.5" cy="12" r="1.8"/><path d="M8 6v2.5M8 8.5 3.5 10M8 8.5l4.5 1.5"/></svg>Organization
+        <svg class="chev" width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg>
+      </button>
+    </nav>
+    <div class="side-foot">
+      <button class="nav-item"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M6.2 6.2a1.9 1.9 0 0 1 3.7.6c0 1.2-1.9 1.4-1.9 2.5"/><circle cx="8" cy="11.4" r=".2" fill="currentColor"/></svg>Help &amp; Learn</button>
+      <button class="side-user">
+        <span class="avatar">JR</span>
+        <div><b>Jamal</b><span>Questionnaire Login…</span></div>
+        <svg class="chev" width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2.5 7.5 6 4l3.5 3.5"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ═══ Main ═══ -->
+  <div class="main">
+    <div class="crumbbar">
+      <button class="btn-back">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8.5 2.5 4 7l4.5 4.5M4 7h8"/></svg>
+        Back
+      </button>
+      <div class="crumb">Central employee listening, March 2025 – November 2029<span id="crumbHere" hidden><span class="sep">/</span><span class="here">Your question library</span></span></div>
+    </div>
+
+    <div class="content">
+      <div class="page-head">
+        <div>
+          <div class="page-title"><h1>Question library</h1><span class="badge-beta">BETA</span></div>
+          <p class="page-sub">Explore the questions you can ask in your surveys for this project</p>
+        </div>
+        <button class="btn-ghost" id="btnLearn">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 13.5h4M6.5 11.5h3M8 2a4 4 0 0 1 2.4 7.2c-.6.5-.9 1-.9 1.6v.7h-3v-.7c0-.6-.3-1.1-.9-1.6A4 4 0 0 1 8 2z"/></svg>
+          Learn more about questions
+        </button>
+      </div>
+
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" data-tab="overview">Overview</button>
+        <button class="tab" role="tab" data-tab="questionsets">Themes &amp; topics</button>
+        <button class="tab" role="tab" data-tab="allquestions">All questions</button>
+        <button class="tab" role="tab" data-tab="variables">Variables</button>
+      </div>
+
+      <div class="banner-warn">
+        Question Management is currently available in read-only mode. Changes to questionnaires, including adding your own questions, are temporarily under maintenance. Please request any changes via your main contact person. Change requests will be processed within 8–10 working days.
+      </div>
+
+      <div class="banner-promo" id="promoBar">
+        <span class="play-ic"><svg width="17" height="17" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="9" r="7.2"/><path d="M7.4 6.4v5.2L11.6 9z" fill="currentColor" stroke="none"/></svg></span>
+        <span class="grow">Learn everything about <b>question library!</b></span>
+        <button class="btn-ghost" id="btnVideo">Watch Video</button>
+        <button class="x" id="promoClose" aria-label="Close">
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3l8 8M11 3l-8 8"/></svg>
+        </button>
+      </div>
+
+      <div id="tabPanel"></div>
+    </div>
+  </div>
+</div>
+
+<div class="fb-tab">
+  <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3.5A1.5 1.5 0 0 1 3.5 2h7A1.5 1.5 0 0 1 12 3.5v5A1.5 1.5 0 0 1 10.5 10H6l-3 2.5V10h-.5" /></svg>
+  Feedback
+</div>
+<div class="ask-pill">
+  <span class="spark"><svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M7 1l1.3 3.6L12 6 8.3 7.4 7 11 5.7 7.4 2 6l3.7-1.4z"/></svg></span>
+  Ask me anything…
+</div>
+
+<!-- ═══ Welcome dialog ═══ -->
+<div class="overlay open" id="ovWelcome">
+  <div class="modal modal-rel">
+    <button class="modal-x" data-close="ovWelcome" aria-label="Close">
+      <svg width="15" height="15" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3l8 8M11 3l-8 8"/></svg>
+    </button>
+    <div class="welcome-art">
+      <div class="mini-card" style="left:78px;top:28px">
+        <b><svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#26374b" stroke-width="2"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg>Customer Focus</b>
+        <div class="mini-line w80"></div><div class="mini-line w60"></div>
+      </div>
+      <div class="mini-card" style="left:128px;top:82px">
+        <b><svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#26374b" stroke-width="2"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg>Engagement</b>
+        <div class="mini-line w80"></div><div class="mini-line w60"></div>
+      </div>
+      <span class="mini-dot" style="right:120px;top:40px;background:#3aa08f"></span>
+      <span class="mini-dot" style="right:88px;top:96px;background:#e8a33d;width:7px;height:7px"></span>
+    </div>
+    <div class="modal-body">
+      <h2>Discover your Question Library<span class="badge-beta beta-inline">BETA</span></h2>
+      <p class="lead">Welcome to the Beta version of our new Question Library!</p>
+      <p>We're excited to let you explore the new Question Library! As this is a Beta release, you may notice a few rough edges:</p>
+      <ul>
+        <li>You may experience inconsistent behavior</li>
+        <li>Some bugs or limitations may appear</li>
+        <li>Data might occasionally be incomplete or incorrect</li>
+        <li>Performance may not yet be fully optimized</li>
+      </ul>
+      <p>We're keeping a close eye on issues, especially anything related to question content. If something you've used before is missing, let us know through our support channels.</p>
+      <p>Your feedback is important to us as we continue to improve this feature. You can share it directly in the platform or contact your Customer Success Manager.</p>
+    </div>
+    <div class="modal-foot"><button class="btn-primary" data-close="ovWelcome">Got it!</button></div>
+  </div>
+</div>
+
+<!-- ═══ Learn more modal ═══ -->
+<div class="overlay" id="ovLearn">
+  <div class="modal wide modal-rel">
+    <button class="modal-x" data-close="ovLearn" aria-label="Close">
+      <svg width="15" height="15" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3l8 8M11 3l-8 8"/></svg>
+    </button>
+    <div class="learn">
+      <div class="learn-nav">
+        <span class="ttl">Learn more about our questions</span>
+        <button data-anchor="ln-about" class="on">About questions</button>
+        <button data-anchor="ln-types">Question types and answer scales</button>
+        <button data-anchor="ln-themes">Themes and topics</button>
+      </div>
+      <div class="learn-art" id="learnArt"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Variable dialog ═══ -->
+<div class="overlay" id="ovVar">
+  <div class="modal modal-rel var-dialog">
+    <button class="modal-x" data-close="ovVar" aria-label="Close">
+      <svg width="15" height="15" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3l8 8M11 3l-8 8"/></svg>
+    </button>
+    <div class="modal-body" id="varBody"></div>
+    <div class="modal-foot"><button class="btn-plain" data-close="ovVar">Close</button></div>
+  </div>
+</div>
+
+<!-- ═══ Video placeholder ═══ -->
+<div class="overlay" id="ovVideo">
+  <div class="modal modal-rel">
+    <button class="modal-x" data-close="ovVideo" aria-label="Close">
+      <svg width="15" height="15" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3l8 8M11 3l-8 8"/></svg>
+    </button>
+    <div class="modal-body">
+      <div class="video-ph">This video isn't part of the prototype</div>
+    </div>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═════════════════ Data captured from live (2026-08-31) ═════════════════ */
+const ORG = "Questionnaire Logincode Migration"; // project org-name variable
+
+/* Answer types: L Likert · O Other · N eNPS · T Open text */
+const TYPES = {
+  L:{label:"Likert", icon:"likert", scale:"Strongly agree\nAgree\nNeither agree nor disagree\nDisagree\nStrongly disagree"},
+  O:{label:"Other", icon:"other", scale:"Custom answer options"},
+  N:{label:"eNPS", icon:"enps", scale:"Scale from 10 to 0\n(promoters, passives, detractors)"},
+  T:{label:"Open text", icon:"text", scale:"Open-ended answer"}
+};
+
+const TOPICS = [
+ {name:"Work enjoyment", qs:[
+  ["I am satisfied with my job as a whole","L"],
+  ["I am enthusiastic about my job","L"],
+  ["I enjoy doing my work / tasks","L"],
+  ["The work I do is meaningful","L"],
+  ["I am proud of the work I deliver","L"],
+  ["I enjoy taking on new tasks and responsibilities","L"]]},
+ {name:"Work enablement", qs:[
+  ["I am enabled to do my work efficiently","L"],
+  ["I am provided with good work resources (tools, devices, software, materials, etc.) to do my job well","L"],
+  ["I am enabled to do my work while working from a remote location (tools, devices, access, etc.)","L"],
+  ["What hinders you in doing your work remotely? You may select multiple topics","O"],
+  ["Important information is readily accessible for me","L"]]},
+ {name:"Work performance", qs:[
+  ["At work I get to do what I do best","L"],
+  ["I understand how my work contributes to {org}'s strategy","L"],
+  ["I am willing to go beyond the scope of my defined tasks to contribute to the success of {org}","L"],
+  ["My skills and abilities fit in well with my job","L"],
+  ["I can decide how to do my work","L"],
+  ["I have the ability to organize my tasks","L"],
+  ["I have the freedom to make decisions at work","L"],
+  ["I know what results are expected of me at work","L"],
+  ["I know what tasks I need to carry out to do my work well","L"],
+  ["I take the initiative whenever I see room for improvement","L"],
+  ["I take the initiative to stay informed regarding developments within {org}","L"]]},
+ {name:"Wellbeing and workload", qs:[
+  ["At work I feel fit and energetic","L"],
+  ["I experience a good balance between work and my personal life","L"],
+  ["I have enough time to do my work","L"],
+  ["Doing my work gives me energy","L"],
+  ["My workload is","O"],
+  ["I can cope well with my workload","L"],
+  ["At work I am able to deal with stress effectively","L"],
+  ["I am able to maintain a good balance between working and relaxing","O"],
+  ["I feel that the way I currently work is sustainable for the next three months","L"],
+  ["Time flies when I am working","L"],
+  ["I have experienced undesirable behavior by colleagues in the past year (such as verbal aggression, physical abuse, sexual harassment, bullying, discrimination, etc.)","O"],
+  ["I have experienced undesirable behavior by customers/clients in the past year (such as verbal aggression, physical abuse, sexual harassment, bullying, discrimination, etc.)","O"]]},
+ {name:"Work environment and conditions", qs:[
+  ["I am satisfied with my working conditions (physical environment)","L"],
+  ["I can do my work undisturbed by unnecessary rules and procedures","L"],
+  ["I feel safe while I work","L"],
+  ["I feel empowered to act in the event of unsafe situations","L"],
+  ["{org} takes appropriate action in the event of unsafe situations","L"],
+  ["My salary is determined fairly","L"],
+  ["I am well paid compared to other people outside {org}","L"],
+  ["My pay aligns with my level of responsibility and performance","L"]]},
+ {name:"Team dynamics", qs:[
+  ["I enjoy working with my colleagues","L"],
+  ["I have confidence in my colleagues","L"],
+  ["I feel appreciated by my colleagues","L"],
+  ["My colleagues honor their agreements","L"],
+  ["I can count on my colleagues for help if needed","L"],
+  ["My team and I give each other feedback on performance","L"],
+  ["My team and I give each other feedback on behavior","L"],
+  ["My colleagues provide me with the necessary information to do my work","L"],
+  ["I feel safe to talk to my colleagues about their behavior","L"],
+  ["I would feel safe to openly discuss a mistake I made","L"]]},
+ {name:"Team collaboration and performance", qs:[
+  ["My team's goals are clear","L"],
+  ["My team understands what needs to be done to contribute to the success of {org}","L"],
+  ["My team contributes to the success of {org}","L"],
+  ["In my team we collaborate well","L"],
+  ["In my team work is done efficiently","L"],
+  ["My team puts the customer/client first","L"],
+  ["My team performs well","L"],
+  ["My team is productive","L"],
+  ["People in my team focus on the right things","L"],
+  ["I feel responsible for the results delivered by my team","L"],
+  ["People in my team take responsibility for their projects/tasks","L"],
+  ["In my team we make work-related decisions efficiently","L"],
+  ["In my team we proactively take steps to improve what we do and deliver","L"],
+  ["In my team we leverage each other's strengths","L"],
+  ["My team regularly develops good ideas for improvement","L"]]},
+ {name:"Team leadership", qs:[
+  ["I am satisfied with my manager","L"],
+  ["I have confidence in my manager","L"],
+  ["I feel appreciated by my {manager}","L"],
+  ["I have a good working relationship with my manager","L"],
+  ["I am regularly given useful performance feedback","L"],
+  ["My manager motivates me in my work","L"],
+  ["My manager is clear about my objectives","L"],
+  ["My manager encourages my development","L"],
+  ["My manager is open to suggestions","L"],
+  ["My manager informs me when I've peformed well","L"],
+  ["My manager informs me when my work can be improved","L"],
+  ["My manager treats me with respect","L"],
+  ["My manager informs me about important matters","L"],
+  ["My manager sets a good example for my team","L"],
+  ["My manager leads changes in an exemplary manner","L"],
+  ["My manager delivers on their promises","L"],
+  ["My manager supports me in achieving my objectives","L"],
+  ["I feel safe to talk to my manager about their behaviour","L"],
+  ["My manager values different opinions in my team","L"]]},
+ {name:"Company strategy", qs:[
+  ["{org}'s goals and strategy are clear to me","L"],
+  ["I support {org}'s goals and strategy","L"],
+  ["The vision for the future of {org} inspires me","L"],
+  ["I care about the future of {org}","L"]]},
+ {name:"Company leadership", qs:[
+  ["I have confidence in {org}'s management","L"],
+  ["Management is aware of what is happening on the work floor","L"],
+  ["Management communicates clearly about major developments within {org}","L"],
+  ["{org} is open to suggestions and new ideas","L"]]},
+ {name:"Company communication and collaboration", qs:[
+  ["Collaboration between my team and other teams within {org} is effective","L"],
+  ["Within {org} there is a clear decision-making process","L"],
+  ["Within {org} work processes are well organised","L"],
+  ["Employees communicate openly within {org}","L"],
+  ["There is good communication between different teams within {org}","L"],
+  ["I feel there are sufficient opportunities to take part in discussions about organization-wide subjects","L"]]},
+ {name:"Company culture", qs:[
+  ["{org} is a good organization to work for","L"],
+  ["I am proud to work at {org}","L"],
+  ["I feel that I fit in at {org}","L"],
+  ["I feel appreciated by {org}","L"],
+  ["{org} puts the customer/client first","L"],
+  ["I identify with the culture of {org}","L"],
+  ["{org} offers me a challenging work environment","L"],
+  ["{org} offers me enough job security","L"],
+  ["Within {org} employees are treated in a fair manner","L"],
+  ["Within {org} performance is rewarded","L"],
+  ["{org} trusts that I do my job in the best way possible","L"],
+  ["I receive praise and recognition when I perform well","L"],
+  ["{org} pays sufficient attention to corporate social responsibility (such as sustainability, volunteering, community outreach etc.)","L"],
+  ["I am optimistic about the future of {org}","L"]]},
+ {name:"Diversity, Equity and Inclusion", qs:[
+  ["I can be myself around everyone I work with","L"],
+  ["I am accepted the way I am within my immediate work environment","L"],
+  ["I can share my opinions openly without fear of reprisal/repercussion","L"],
+  ["My work environment is free from bullying and harassment","L"],
+  ["{org} is committed to supporting a culture of inclusion","L"],
+  ["Within my immediate work environment, everyone is treated equally and with respect regardless of their background or personal characteristics","L"],
+  ["People of all backgrounds (culture, ethnicity, gender, sexual orientation, age, religion etc.) can succeed at {org}","L"]]},
+ {name:"Change management", qs:[
+  ["I understand why change is necessary within {org}","L"],
+  ["I understand how changes within {org} have an impact on my day-to-day activities","L"],
+  ["{org} provides relevant and timely information during times of change","L"],
+  ["I am able to deal with changes effectively","L"],
+  ["I receive sufficient support in times of change","L"],
+  ["I handle personnel changes in my team effectively","L"],
+  ["I receive timely information about upcoming changes","L"],
+  ["My manager takes responsibility for change","L"],
+  ["My manager helps me adapt to new ways of working","L"]]},
+ {name:"Feedback and action", qs:[
+  ["{org} uses employees' ideas and suggestions to improve","L"],
+  ["In my team we have taken action based on previous survey results","L"],
+  ["I can see clear improvements as a result of sharing feedback within {org}","L"]]},
+ {name:"Growth and development", qs:[
+  ["I am satisfied with my development opportunities","L"],
+  ["I have good opportunities to develop myself professionally and personally","L"],
+  ["My job offers me sufficient opportunities to acquire new knowledge","L"],
+  ["{org} offers me good training opportunities","L"],
+  ["My current knowledge and skills allow me to easily find another job","L"],
+  ["I would like to continue working at {org} for the next one to two years","L"],
+  ["I have taken serious action to look for another job over the past three months, or plan to do so in the next three months","O"]]},
+ {name:"eNPS", qs:[
+  ["How likely is it that you would recommend {org} as an employer to others?","N"]]},
+ {name:"Topics of pride", qs:[
+  ["What are you most proud of within {org}?","O"],
+  ["What makes you proud of this? Please give a short description","T"]]},
+ {name:"Topics to improve", qs:[
+  ["What needs improvement within {org}?","O"],
+  ["What could your organization do better? Please give a short description","T"]]}
+];
+
+const THEMES = [
+ {name:"Alignment", desc:[
+  "Alignment refers to a shared understanding of organizational goals and objectives across all your organizational units. This understanding will ensure that the performance and participation of your employees are in line with your organization's strategy.",
+  "The score for alignment shows the extent to which employees are aware of their organization’s vision and objectives as well as whether your employees feel like they can contribute to this vision and these objectives."],
+  qs:["I understand how my work contributes to {org}'s strategy","{org}'s goals and strategy are clear to me","I support {org}'s goals and strategy"]},
+ {name:"Autonomy", desc:[
+  "Autonomy refers to the extent to which your employees experience a sense of choice and psychological freedom when doing their job.",
+  "The score for autonomy shows your organization’s willingness to give its employees freedom and independence in performing their tasks. When your employees feel a certain degree of autonomy, they are more likely to be intrinsically motivated to complete their tasks."],
+  qs:["I have the freedom to make decisions at work","I have the ability to organize my tasks","I can decide how to do my work"]},
+ {name:"Change Management", desc:[
+  "Change management deals with a combination of preparation and adaptability in the face of change. It is about the extent to which your organization prepares, informs and enables employees to adapt to changes in the future.",
+  "Your change management score shows how well your organization enables and encourages employees to deal well with change. When you succeed in doing so, your employees will understand the purpose of change and perform in line with your expectations."],
+  qs:["I understand how changes within {org} have an impact on my day-to-day activities","I receive sufficient support in times of change","{org} provides relevant and timely information during times of change"]},
+ {name:"Customer focus", desc:[
+  "Customer focus is about identifying your internal stakeholders’ and customers’ wishes and requirements, anticipating these wishes, and acting accordingly.",
+  "High scores on customer focus mean that your employees prioritize the needs of your stakeholders and customers."],
+  qs:["My team puts the customer/client first","{org} puts the customer/client first"]},
+ {name:"Employer Excellence", desc:[
+  "Organisations who work on employership provide their employees with a work environment where they feel at home and accepted. Such a work environment enhances your employees' feeling of being connected with their colleagues and your organization.",
+  "High scores on employer excellence mean your employees feel part of a community, appreciated, inspired and cared for at your organization. In such an environment, your employees will perform better and remain with the organization for a longer period because they are intrinsically motivated."],
+  qs:["The vision for the future of {org} inspires me","I feel appreciated by {org}","{org} is a good organization to work for","{org} uses employees' ideas and suggestions to improve"]},
+ {name:"Enablement", desc:[
+  "Workplace enablement refers to how your organization addresses the needs of your employees to work efficiently, productively and happily. According to different work processes in and across organizations, it is important to enable work conditions that facilitate high levels of functioning.",
+  "High scores on enablement show that you've put the right tools, equipment, software, training and work processes in place for your employees to perform their tasks in the best possible way."],
+  qs:["I am provided with good work resources (tools, devices, software, materials, etc.) to do my job well","At work I get to do what I do best","Within {org} work processes are well organised"]},
+ {name:"Engagement", desc:[
+  "Engagement is the degree to which your employees are inspired and energized by their work. It also refers to their positive connection to your organization. Engaged employees experience their work as meaningful and rewarding, are proud of their jobs, and feel that they fit in at the organization. They can go the extra mile because they love what they do and where they work.",
+  "Your engagement score will tell you how enthusiastic your employees are about their work and how connected they feel to your organization."],
+  qs:["I enjoy doing my work / tasks","Doing my work gives me energy","I am proud to work at {org}","I feel that I fit in at {org}"]},
+ {name:"Inclusion", desc:[
+  "Inclusion refers to employees being accepted by a group and feeling a sense of authenticity and belonging. In an inclusive work climate, your employees can behave themselves in line with their true selves.",
+  "A high score on inclusion tells you that there is a positive connection between your employees and their team and organization. Such a work environment enables (psychological) safety and leads to satisfaction and reduced absenteeism."],
+  qs:["I am accepted the way I am within my immediate work environment","I can be myself around everyone I work with","Within my immediate work environment, everyone is treated equally and with respect regardless of their background or personal characteristics"]},
+ {name:"Ownership", desc:[
+  "Ownership is the degree to which your employees feel that they can act with a sense of authority when making organizational decisions. It also refers to the degree to which they feel responsible for the consequences of these decisions.",
+  "A high score on ownership shows that your employees are willing to be held accountable for their team’s actions as well as their own performance."],
+  qs:["I am willing to go beyond the scope of my defined tasks to contribute to the success of {org}","I feel responsible for the results delivered by my team","People in my team take responsibility for their projects/tasks"]},
+ {name:"Psychological safety", desc:[
+  "Psychological safety refers to the sense of feeling safe among a group of individuals. In a safe work environment, your employees feel safe enough to give feedback about each other’s behaviors and work, and openly discuss their own and others’ mistakes.",
+  "Your score on psychological safety shows the degree to which your employees are comfortable sharing their opinions with their colleagues, and whether feedback is welcome in your organization."],
+  qs:["I would feel safe to openly discuss a mistake I made","I feel safe to talk to my colleagues about their behavior","I feel safe to talk to my manager about their behaviour"]},
+ {name:"Role clarity", desc:[
+  "Role clarity refers to the clarity about your employees’ and teams’ responsibilities and priorities; what is expected of them, their way of working, and how they can contribute to the organization.",
+  "High scores on role clarity mean that your employees and teams know what to do and when, and what their goals are."],
+  qs:["I know what tasks I need to carry out to do my work well","I know what results are expected of me at work","My team's goals are clear"]},
+ {name:"Leading change", desc:[
+  "Leading Change should aim to let employees know what has to be changed, why, and how, and to obtain their backing for the necessary changes. For this, managers need to involve their teams in the process so that they understand and trust them. Involvement is particularly important in unsettling situations that inevitably occur during ongoing change."],
+  qs:["My team understands what needs to be done to contribute to the success of {org}","My team regularly develops good ideas for improvement","I have confidence in my manager","My manager leads changes in an exemplary manner","I identify with the culture of {org}"]},
+ {name:"Managing People", desc:[
+  "People management ensures employees know the company’s expectations and can apply their knowledge and skills accordingly. This includes constructive feedback and recognition to show that good performance is acknowledged and well-rewarded in the company."],
+  qs:["My skills and abilities fit in well with my job","I know what results are expected of me at work","I am regularly given useful performance feedback","Within {org} performance is rewarded","I receive praise and recognition when I perform well"]},
+ {name:"Managing Systems", desc:[
+  "Well-managed systems enable employees to reach the expected performance by providing them with the necessary working conditions. This includes good working tools, effective work processes, good collaboration on different levels, and the availability of development opportunities."],
+  qs:["Important information is readily accessible for me","I am provided with good work resources (tools, devices, software, materials, etc.) to do my job well","In my team we collaborate well","Within {org} work processes are well organised","I have good opportunities to develop myself professionally and personally"]},
+ {name:"Performance Environment", desc:[
+  "A performance environment refers to the conditions that enable employees to work efficiently and effectively. It provides the right circumstances for optimal performance. Employees and managers need such an environment to fully utilize their potential individually and within the teams."],
+  qs:["Important information is readily accessible for me","I am provided with good work resources (tools, devices, software, materials, etc.) to do my job well","My skills and abilities fit in well with my job","I know what results are expected of me at work","My team understands what needs to be done to contribute to the success of {org}","In my team we collaborate well","My team regularly develops good ideas for improvement","I have confidence in my manager","I am regularly given useful performance feedback","My manager leads changes in an exemplary manner","I support {org}'s goals and strategy","The vision for the future of {org} inspires me","Within {org} work processes are well organised","I identify with the culture of {org}","Within {org} performance is rewarded","I receive praise and recognition when I perform well","Within {org} employees are treated in a fair manner","I have good opportunities to develop myself professionally and personally"]},
+ {name:"Providing Direction", desc:[
+  "Providing Direction should aim to make employees enthusiastic about the company’s vision, familiar with and convinced by the company’s strategy, and feel treated in a fair and just manner within the overall “ecosystem” of their company. Then, the employees will also be willing to go along with strategically necessary changes."],
+  qs:["I support {org}'s goals and strategy","The vision for the future of {org} inspires me","Within {org} employees are treated in a fair manner"]},
+ {name:"Sustainable employability", desc:[
+  "Sustainable employability refers to the extent to which your employees can do their job well and keep on performing within your organization, both now and later in their careers. Four factors play a role, namely good work conditions that minimize work strains, skill sets and abilities that match their jobs, sufficient development opportunities, and how dedicated your employees are to the future of your organization.",
+  "High scores on sustainable employability show that the work conditions you provide help your employees do their best and enable them to keep on performing in the long run."],
+  qs:["My skills and abilities fit in well with my job","I am satisfied with my working conditions (physical environment)","I care about the future of {org}","I am satisfied with my development opportunities"]},
+ {name:"Team Leadership", desc:[
+  "A leader’s primary purpose is to provide clear guidance with a clear vision to their team, while motivating and encouraging team members by setting a good example. In contemporary work settings, such leaders can help team members with their growth, stimulate creativity and facilitate performance.",
+  "High scores on team leadership show that your team members are satisfied with their leaders and benefit from their guidance."],
+  qs:["My manager motivates me in my work","My manager encourages my development","My manager sets a good example for my team","My manager supports me in achieving my objectives"]},
+ {name:"Team productivity", desc:[
+  "Team productivity refers to how much output is gained by a team’s effort. It’s important to maximize a team's productivity by focusing on efficient and effective processes.",
+  "High scores on team productivity show that your team members help each other setting goals, achieving organizational objectives, and with their personal development through feedback. Productive teams are more likely to perform well consistently."],
+  qs:["My team and I give each other feedback on performance","My team contributes to the success of {org}","People in my team focus on the right things"]},
+ {name:"Teamwork", desc:[
+  "Teamwork refers to the collaboration of a team to achieve their shared goals. Teamwork is about helping each other and supporting each other when working together.",
+  "High scores on teamwork illustrate the collegiality, cooperation, and cohesiveness of your team. Such teams are more likely to be positive about working together and perform better than teams with low scores on teamwork."],
+  qs:["My team and I give each other feedback on behavior","My colleagues honor their agreements","My colleagues provide me with the necessary information to do my work","In my team we collaborate well"]},
+ {name:"Trust", desc:[
+  "Trust refers to how willing your employees are to embrace their own and others' vulnerability at work. Trust consists of three components: if you trust someone to be a good person (benevolence), if you trust someone's work (ability) and if you can trust someone to walk the way they talk (integrity). Effectory measures trust on three levels: trust in colleagues, trust in management, and received trust from the organization.",
+  "The score for trust gives you an idea about your employees’ best intentions for one another, whether they believe in each other's abilities, and whether the organization and employees adhere to the promises and agreements that are made."],
+  qs:["I have confidence in my colleagues","I have confidence in my manager","{org} trusts that I do my job in the best way possible"]}
+];
+
+const LANGS = [
+  {flag:"🇺🇸", label:"English (United States)"},
+  {flag:"🇳🇱", label:"Dutch (Netherlands)"},
+  {flag:"🇵🇹", label:"Portuguese (Portugal)"}
+];
+
+/* ═════════════════ Helpers ═════════════════ */
+const $ = s => document.querySelector(s);
+const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const fill = s => s.replaceAll("{org}", ORG).replaceAll("{manager}","manager");
+const nQ = n => n + " Questions";
+
+const ICONS = {
+  likert:'<svg width="17" height="17" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7.4" stroke="#0e8478" stroke-width="1.5"/><path d="M6 11.3V8.6M9 11.3V6.6M12 11.3V9.6" stroke="#0e8478" stroke-width="1.6" stroke-linecap="round"/></svg>',
+  other:'<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="2.2" y="2.2" width="13.6" height="13.6" rx="3" stroke="#e8933d" stroke-width="1.5"/><path d="M5.6 9.3l2.2 2.2 4.4-4.6" stroke="#e8933d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  enps:'<svg width="17" height="17" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7.4" fill="#4ca25f"/><circle cx="6.6" cy="7.4" r=".95" fill="#fff"/><circle cx="11.4" cy="7.4" r=".95" fill="#fff"/><path d="M6 10.6c.8 1 1.8 1.5 3 1.5s2.2-.5 3-1.5" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/></svg>',
+  text:'<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="2.2" y="2.2" width="13.6" height="13.6" rx="3" stroke="#5b6d80" stroke-width="1.5"/><path d="M5.4 6.4h7.2M5.4 9h7.2M5.4 11.6h4.4" stroke="#5b6d80" stroke-width="1.4" stroke-linecap="round"/></svg>'
+};
+const CHEV = '<svg class="chev" width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2.8 8.8 7 4.6l4.2 4.2"/></svg>';
+const ARROW = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2.5 8h11M9.5 4l4 4-4 4"/></svg>';
+const EYE = '<svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.8 9S4.6 4.4 9 4.4 16.2 9 16.2 9 13.4 13.6 9 13.6 1.8 9 1.8 9z"/><circle cx="9" cy="9" r="2.1"/></svg>';
+
+function typeHTML(t){
+  return `<span class="qtype" data-scale="${esc(TYPES[t].scale)}">${ICONS[TYPES[t].icon]}${TYPES[t].label}</span>`;
+}
+function hlText(text, term){
+  const t = esc(fill(text));
+  if(!term) return t;
+  const i = t.toLowerCase().indexOf(term.toLowerCase());
+  if(i < 0) return t;
+  return t.replace(new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"gi"), m => `<mark>${m}</mark>`);
+}
+const matches = (text, term) => !term || fill(text).toLowerCase().includes(term.toLowerCase());
+
+/* org-variable occurrence count, derived from the data */
+const orgQuestions = TOPICS.flatMap(t => t.qs).filter(q => q[0].includes("{org}"));
+
+/* ═════════════════ Tab rendering ═════════════════ */
+const state = { tab:"overview", search:{questionsets:"", allquestions:""}, lang:0 };
+
+function langDropHTML(id){
+  const l = LANGS[state.lang];
+  return `
+  <div class="lbl">Library languages <span class="info-dot" title="The languages this project's question library is available in">i</span></div>
+  <div class="toolrow">
+    <div class="select" id="${id}" tabindex="0">
+      <span>${l.flag}</span><span>${l.label}</span>${CHEV.replace("2.8 8.8 7 4.6l4.2 4.2","2.8 5.2 7 9.4l4.2-4.2")}
+      <div class="menu" role="listbox">
+        ${LANGS.map((o,i)=>`<button data-lang="${i}">${o.flag} ${o.label}${i===state.lang?'<span class="check">✓</span>':""}</button>`).join("")}
+      </div>
+    </div>
+    <!--SLOT-->
+  </div>`;
+}
+
+function renderOverview(){
+  return `
+  <div class="sec-head"><h2>Overview</h2><div class="rule"></div><span>Latest status of the question library</span></div>
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-top">
+        <span class="stat-ic doc"><svg width="17" height="17" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3.4" y="2.2" width="11.2" height="13.6" rx="1.6"/><path d="M6.4 6h5.2M6.4 9h5.2M6.4 12h3.2"/></svg></span>
+        <b>21 themes</b>
+        <button class="arrow" data-go="questionsets" aria-label="View themes">${ARROW}</button>
+      </div>
+      <div class="stat-rows"><div class="stat-row"><span>Standard themes</span><span class="pill">21</span></div></div>
+    </div>
+    <div class="stat">
+      <div class="stat-top">
+        <span class="stat-ic clip"><svg width="17" height="17" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3.4" y="3.2" width="11.2" height="12.6" rx="1.6"/><path d="M6.6 3.2V2h4.8v1.2M6.4 7.4h5.2M6.4 10.4h5.2"/></svg></span>
+        <b>19 topics</b>
+        <button class="arrow" data-go="questionsets" aria-label="View topics">${ARROW}</button>
+      </div>
+      <div class="stat-rows"><div class="stat-row"><span>Standard topics</span><span class="pill">19</span></div></div>
+    </div>
+    <div class="stat">
+      <div class="stat-top">
+        <span class="stat-ic chat"><svg width="17" height="17" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2.4 4.4A2 2 0 0 1 4.4 2.4h9.2a2 2 0 0 1 2 2v6.4a2 2 0 0 1-2 2H7l-3.6 3v-3h-.9a2 2 0 0 1-.1-.1z"/></svg></span>
+        <b>145 questions</b>
+        <button class="arrow" data-go="allquestions" aria-label="View all questions">${ARROW}</button>
+      </div>
+      <div class="stat-rows">
+        <div class="stat-row"><span>Standard questions</span><span class="pill">145</span></div>
+        <div class="stat-row"><span>Custom questions</span><span class="pill">0</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="card half">
+    <div class="card-head"><b>Top question sets</b></div>
+    <div class="card-body err">We're unable to load your top questions sets</div>
+  </div>`;
+}
+
+function setCardHTML(name, kind, questions, opts){
+  const term = state.search.questionsets;
+  const shown = term ? questions.filter(q => matches(q, term)) : questions;
+  if(term && !shown.length) return "";
+  const rows = shown.map(q => `<div class="qrow"><span class="qtext">${hlText(q, term)}</span></div>`).join("");
+  const about = opts?.desc ? `
+    <div class="set-about">
+      <div>${opts.desc.map(p=>`<p>${esc(p)}</p>`).join("")}</div>
+      <div class="vid" data-video>
+        <span class="vplay"><svg width="19" height="19" viewBox="0 0 20 20" fill="currentColor"><path d="M7 4.8v10.4L15.4 10z"/></svg></span>
+        <span class="vlogo"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5.4" r="2.9" stroke="#26374b" stroke-width="2"/><rect x="4.4" y="11" width="7.2" height="2.4" rx="1.2" fill="#26374b"/></svg></span>
+      </div>
+    </div>` : "";
+  return `
+  <div class="set" data-name="${esc(name)}">
+    <button class="set-head" aria-expanded="true">
+      <h3>${esc(name)}</h3>
+      <span class="count">${nQ(questions.length)}</span>
+      <span class="kind">${kind}</span>
+      ${CHEV}
+    </button>
+    <div class="set-body">
+      ${about}
+      <div class="qs-lbl">Questions</div>
+      <div class="qlist">${rows}</div>
+    </div>
+  </div>`;
+}
+
+function renderQuestionsets(){
+  const term = state.search.questionsets;
+  let cards = THEMES.map(t => setCardHTML(t.name, "Theme", t.qs, {desc:t.desc})).join("")
+            + TOPICS.map(t => setCardHTML(t.name, "Topic", t.qs.map(q=>q[0]))).join("");
+  if(term && !cards.trim()){
+    cards = `<div class="no-results">We couldn't find any matches for "<b>${esc(term)}</b>"</div>`;
+  }
+  let html = langDropHTML("langDrop").replace("<!--SLOT-->", `
+    <div class="search ${term?"has":""}" id="searchBox">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.6"/><path d="m10.6 10.6 3 3"/></svg>
+      <input type="search" placeholder="Search for specific questions" value="${esc(term)}" aria-label="Search for specific questions">
+      <button class="clear" aria-label="Clear search"><svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3l8 8M11 3l-8 8"/></svg></button>
+    </div>
+    <button class="btn-collapse" id="btnCollapse">${CHEV} Collapse all</button>`);
+  return `<div class="toolbar">${html}</div><div class="setlist">${cards}</div>`;
+}
+
+function renderAllQuestions(){
+  const term = state.search.allquestions;
+  let groups = TOPICS.map(t => {
+    const shown = t.qs.filter(q => matches(q[0], term));
+    if(!shown.length) return "";
+    const rows = shown.map(q => `
+      <div class="qrow">
+        <span class="qtext">${hlText(q[0], term)}</span>
+        <span class="badge-std">Standard</span>
+        ${typeHTML(q[1])}
+      </div>`).join("");
+    return `<div class="topic-group"><h3>${esc(t.name)}</h3><div class="qwrap">${rows}</div></div>`;
+  }).join("");
+  if(term && !groups.trim()){
+    groups = `<div class="no-results">We couldn't find any matches for "<b>${esc(term)}</b>"</div>`;
+  }
+  const html = langDropHTML("langDrop").replace("<!--SLOT-->", `
+    <div class="search ${term?"has":""}" id="searchBox" style="width:236px">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.6"/><path d="m10.6 10.6 3 3"/></svg>
+      <input type="search" placeholder="Search for specific questions" value="${esc(term)}" aria-label="Search for specific questions">
+      <button class="clear" aria-label="Clear search"><svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3l8 8M11 3l-8 8"/></svg></button>
+    </div>`);
+  return `<div class="toolbar">${html}</div>${groups}`;
+}
+
+function renderVariables(){
+  const html = langDropHTML("langDrop").replace("<!--SLOT-->","");
+  return `<div class="toolbar">${html}</div>
+  <div class="vartable"><table>
+    <tr><th>Variable</th><th>Occurrences</th><th></th></tr>
+    <tr><td>manager</td><td class="num">1</td><td><button class="eye" data-var="manager" aria-label="View questions with this variable">${EYE}</button></td></tr>
+    <tr><td>${esc(ORG)}</td><td class="num">${orgQuestions.length}</td><td><button class="eye" data-var="org" aria-label="View questions with this variable">${EYE}</button></td></tr>
+  </table></div>`;
+}
+
+const RENDER = {
+  overview: renderOverview,
+  questionsets: renderQuestionsets,
+  allquestions: renderAllQuestions,
+  variables: renderVariables
+};
+
+function setTab(tab, push=true){
+  if(!RENDER[tab]) tab = "overview";
+  state.tab = tab;
+  document.querySelectorAll(".tab").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === tab));
+  $("#crumbHere").hidden = (tab === "overview");
+  $("#tabPanel").innerHTML = RENDER[tab]();
+  if(push) location.hash = tab === "overview" ? "" : tab;
+  bindPanel();
+}
+
+/* ═════════════════ Panel behaviors ═════════════════ */
+function bindPanel(){
+  const panel = $("#tabPanel");
+
+  // overview arrows
+  panel.querySelectorAll("[data-go]").forEach(b => b.onclick = () => setTab(b.dataset.go));
+
+  // language dropdown
+  const drop = panel.querySelector("#langDrop");
+  if(drop){
+    const menu = drop.querySelector(".menu");
+    drop.addEventListener("click", e => {
+      const item = e.target.closest("[data-lang]");
+      if(item){
+        const i = +item.dataset.lang;
+        if(i !== state.lang){ state.lang = i; setTab(state.tab, false); }
+        if(i !== 0) toast("This prototype shows English content only");
+        menu.classList.remove("open");
+        e.stopPropagation();
+        return;
+      }
+      menu.classList.toggle("open");
+      e.stopPropagation();
+    });
+  }
+
+  // search
+  const box = panel.querySelector("#searchBox");
+  if(box){
+    const input = box.querySelector("input");
+    input.addEventListener("input", () => {
+      state.search[state.tab] = input.value;
+      refreshPanelKeepFocus(input);
+    });
+    box.querySelector(".clear").onclick = () => {
+      state.search[state.tab] = "";
+      setTab(state.tab, false);
+      panel.querySelector("#searchBox input")?.focus();
+    };
+  }
+
+  // collapse all
+  const col = panel.querySelector("#btnCollapse");
+  if(col){
+    col.onclick = () => {
+      const sets = panel.querySelectorAll(".set");
+      const anyOpen = [...sets].some(s => !s.classList.contains("closed"));
+      sets.forEach(s => s.classList.toggle("closed", anyOpen));
+      col.innerHTML = `${CHEV} ${anyOpen ? "Expand all" : "Collapse all"}`;
+    };
+  }
+
+  // accordions
+  panel.querySelectorAll(".set-head").forEach(h => h.onclick = () => {
+    const s = h.closest(".set");
+    s.classList.toggle("closed");
+    h.setAttribute("aria-expanded", !s.classList.contains("closed"));
+  });
+
+  // theme videos
+  panel.querySelectorAll("[data-video]").forEach(v => v.onclick = e => {
+    e.stopPropagation();
+    openOverlay("ovVideo");
+  });
+
+  // variable dialogs
+  panel.querySelectorAll("[data-var]").forEach(b => b.onclick = () => openVarDialog(b.dataset.var));
+
+  // answer-type tooltips
+  panel.querySelectorAll(".qtype").forEach(el => {
+    el.addEventListener("mouseenter", () => showTooltip(el));
+    el.addEventListener("mouseleave", hideTooltip);
+  });
+}
+
+/* re-render on typing without losing focus */
+function refreshPanelKeepFocus(){
+  const panel = $("#tabPanel");
+  const pos = panel.querySelector("#searchBox input")?.selectionStart ?? 0;
+  panel.innerHTML = RENDER[state.tab]();
+  bindPanel();
+  const input = panel.querySelector("#searchBox input");
+  if(input){ input.focus(); input.setSelectionRange(pos, pos); }
+}
+
+/* ═════════════════ Overlays / tooltip / toast ═════════════════ */
+function openOverlay(id){ document.getElementById(id).classList.add("open"); }
+function closeOverlay(id){ document.getElementById(id).classList.remove("open"); }
+document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => closeOverlay(b.dataset.close));
+document.querySelectorAll(".overlay").forEach(o => o.addEventListener("click", e => {
+  if(e.target === o) o.classList.remove("open");
+}));
+document.addEventListener("keydown", e => {
+  if(e.key === "Escape") document.querySelectorAll(".overlay.open").forEach(o => o.classList.remove("open"));
+});
+
+function openVarDialog(kind){
+  const name = kind === "org" ? ORG : "manager";
+  const qs = kind === "org" ? orgQuestions.map(q => q[0]) : ["I feel appreciated by my {manager}"];
+  const chipify = t => esc(fill(t)).replaceAll(esc(name), `<span class="chip">${esc(name)}</span>`)
+                                   .replace(kind === "manager" ? /\bmanager\b/ : /$^/, `<span class="chip">manager</span>`);
+  $("#varBody").innerHTML = `
+    <h2>Variable</h2>
+    <div class="var-lbl">Variable</div>
+    <div style="margin-top:4px"><span class="chip">${esc(name)}</span></div>
+    <h3 style="font-size:16px;margin-top:20px">Content with the variable</h3>
+    <p class="var-hint">Check if the content makes sense with the variable.</p>
+    <div class="var-qhead">
+      <svg width="14" height="14" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="9" r="7"/><path d="M7 7a2 2 0 0 1 3.9.6c0 1.3-2 1.5-2 2.7"/><circle cx="9" cy="12.8" r=".2" fill="currentColor"/></svg>
+      Questions
+    </div>
+    <div class="var-qlist">
+      ${qs.map(q => `<div class="qrow"><span class="qtext">${kind==="org" ? esc(fill(q)).replaceAll(esc(ORG),`<span class="chip">${esc(ORG)}</span>`) : esc(q).replace("{manager}",'<span class="chip">manager</span>')}</span></div>`).join("")}
+    </div>`;
+  openOverlay("ovVar");
+}
+
+const tooltip = $("#tooltip");
+function showTooltip(el){
+  tooltip.textContent = "";
+  el.dataset.scale.split("\n").forEach((line,i) => {
+    if(i) tooltip.appendChild(document.createElement("br"));
+    tooltip.appendChild(document.createTextNode(line));
+  });
+  tooltip.classList.add("on");
+  const r = el.getBoundingClientRect();
+  tooltip.style.left = Math.min(r.left, innerWidth - 216) + "px";
+  tooltip.style.top = Math.max(8, r.top - tooltip.offsetHeight - 8) + "px";
+}
+function hideTooltip(){ tooltip.classList.remove("on"); }
+
+let toastTimer;
+function toast(msg){
+  const t = $("#toast");
+  t.textContent = msg;
+  t.classList.add("on");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("on"), 2600);
+}
+
+/* ═════════════════ Static bindings ═════════════════ */
+document.querySelectorAll(".tab").forEach(b => b.onclick = () => setTab(b.dataset.tab));
+$("#btnLearn").onclick = () => openOverlay("ovLearn");
+$("#btnVideo").onclick = () => openOverlay("ovVideo");
+$("#promoClose").onclick = () => $("#promoBar").remove();
+document.addEventListener("click", () => document.querySelectorAll(".menu.open").forEach(m => m.classList.remove("open")));
+window.addEventListener("hashchange", () => setTab(location.hash.slice(1) || "overview", false));
+
+/* learn-more article */
+$("#learnArt").innerHTML = `
+  <h3 id="ln-about">About questions</h3>
+  <p>To help you find out what is going on within your organization, Effectory provides insight into HR themes, topics and questions that are the most relevant for organizational performance.</p>
+  <p>Every survey has different goals and selected content, but they have one thing in common: the content is always based on validated question sets that assess theory-based themes. This provides a strong base to develop short, understandable, valid, and reliable surveys that we analyze and report statistically.</p>
+  <p>All Effectory validated questions, topics and themes are benchmarked which helps you understand in the results how your employees feel compared to the employees of other organizations.</p>
+  <div class="divider"></div>
+  <h3 id="ln-types">Question types and answer scales</h3>
+  <p>Within our question library we have different answer scales and answers categories. Find out below what the differences are.</p>
+  <h4>${ICONS.likert} Likert scale</h4>
+  <p>This is a 5-point Likert answer scale. Our default answer category range is: Strongly agree – Agree – Neither agree nor disagree – Disagree – Strongly disagree.</p>
+  <p>The answers on rating scale questions will be translated into averages scores.</p>
+  <h4>${ICONS.likert} 10-point scale</h4>
+  <p>This is a 10-point Likert answer scale. This scale ranges from 10 to 0.</p>
+  <p>The answers on 10 point scale questions will be translated into averages scores.</p>
+  <h4>${ICONS.likert} Workload scale</h4>
+  <p>Workload refers to the experienced amount of work your employees are expected to do. Our default answer category range is: Far too low – Too low – Just right – Too high – Far too high. The report will consist of percentages on the answer options, in other words how many participants chose which questions.</p>
+  <h4>${ICONS.likert} Retention scale</h4>
+  <p>Retention refers to employees staying with your organization for a long period of time. The answer categories of this question are: No – Yes, within my organization – yes, outside my organization.</p>
+  <p>The retention score shows the percentage of your employees who are not looking for a job elsewhere and are thus willing to stay with your organization.</p>
+  <h4>${ICONS.enps} (e)NPS</h4>
+  <p>The employee Net Promoter Score (eNPS) is based on one simple but powerful question to assess the enthusiasm of employees about their organization as an employer.</p>
+  <p>The scale range is: 10 (promotors) – 9 (promotors) – 8 (passives) – 7 (passives) – 6 (detractors) – 5 (detractors) – 4 (detractors) – 3 (detractors) – 2 (detractors) – 1 (detractors) – 0 (detractors).</p>
+  <p>The score is determined as follows: % promotors − % detractors.</p>
+  <h4>${ICONS.text} Open text</h4>
+  <p>A textual answer question is an open-ended question. A respondent can provide textual feedback to answer the question. Textual answer questions will be reported exactly as the responded wrote them.</p>
+  <h4>${ICONS.other} Select options scale</h4>
+  <p>For custom answer category questions, we provide the select options scale. Multiple answers can be selected. The report will consist of percentages on the answer options, in other words how many participants chose which questions.</p>
+  <div class="divider"></div>
+  <h3 id="ln-themes">Themes and topics</h3>
+  <h4>Themes</h4>
+  <p>Effectory provides insight into HR themes that are the most relevant for organizational performance. Themes are based upon a mandatory set of questions. In the library you can find out why the theme could be relevant for your organization and which questions belong to this theme. Your theme score represents the average scores your employees gave to the questions that belong to a specific theme. Next to the average scores per question you will also see an average score per theme.</p>
+  <h4>Topics</h4>
+  <p>To categorize relevant questions surrounding a similar subject we also provide topics. The questions you see within a topic are all questions belonging to this specific question set. Your results will show scores per question.</p>`;
+
+document.querySelectorAll(".learn-nav [data-anchor]").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".learn-nav [data-anchor]").forEach(x => x.classList.remove("on"));
+  b.classList.add("on");
+  document.getElementById(b.dataset.anchor).scrollIntoView({behavior:"smooth", block:"start"});
+});
+
+/* boot */
+setTab(location.hash.slice(1) || "overview", false);
+</script>

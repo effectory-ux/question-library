@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Template - My Effectory</title>
+  <base href="../" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="foundation.css" />
+  <link rel="stylesheet" href="components.css" />
+  <link rel="stylesheet" href="prototypes/question-library-cq.css" />
+  <link rel="stylesheet" href="prototypes/question-library-toolbar.css" />
+  <script src="prototypes/question-library-shared.js"></script>
+  <script src="prototypes/question-library-cq.js"></script>
+  <style>
+    /* Template header */
+    .tpl-head { display: flex; align-items: center; gap: var(--spacing-base); }
+    .tpl-head-img { flex: none; width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; }
+    .tpl-head-img img { width: 64px; height: 64px; }
+    .tpl-head-img.is-doc { border-radius: var(--radius-full); background: var(--bg-secondary); color: var(--content-secondary); }
+    .tpl-head-img.is-doc i { width: 28px; height: 28px; display: flex; }
+    .tpl-head h1 { flex: 1; min-width: 0; margin: 0; }
+    .tpl-head-actions { display: flex; align-items: center; gap: var(--spacing-tight); }
+    .tpl-head-actions .info { display: flex; color: var(--content-secondary); cursor: help; }
+    .tpl-head-actions .info i { width: 16px; height: 16px; display: flex; }
+    /* card with local tabs */
+    .tpl-card .card-body { padding-top: 0; }
+    .tpl-tabs { padding: 0 var(--spacing-loose); }
+    /* details */
+    .tpl-details { display: flex; flex-direction: column; gap: var(--spacing-loose); max-width: 960px; }
+    .tpl-details[hidden] { display: none; }
+    .rte { border: 1px solid var(--border-action); border-radius: var(--radius-base); background: var(--bg-input); }
+    .rte-toolbar { display: flex; align-items: center; gap: var(--spacing-extra-tight); padding: var(--spacing-tight); border-bottom: 1px solid var(--border-base); }
+    .rte-sep { width: 1px; height: 16px; background: var(--border-base); margin: 0 var(--spacing-extra-tight); }
+    .rte-body { min-height: 240px; max-height: 420px; overflow-y: auto; padding: var(--spacing-base); font-size: 14px; color: var(--content-base); outline: none; }
+    .rte-body h2 { font-size: 20px; margin: 0 0 var(--spacing-tight); }
+    .rte-body h3 { font-size: 16px; margin: var(--spacing-base) 0 var(--spacing-tight); }
+    .rte-body p { margin: 0 0 var(--spacing-tight); }
+    .rte-body ul, .rte-body ol { margin: 0 0 var(--spacing-tight); padding-left: var(--spacing-loose); }
+    .rte.is-locked { background: var(--bg-secondary); }
+    .rte.is-locked .rte-body { color: var(--content-secondary); }
+    .tf.is-locked { background: var(--bg-secondary); color: var(--content-secondary); }
+    /* questions */
+    .q-drag { flex-shrink: 0; width: 16px; height: 16px; display: flex; color: var(--content-subtle); cursor: grab; }
+    .tpl-sec { margin-top: var(--spacing-extra-loose); }
+    .tpl-sec-head { display: flex; align-items: center; gap: var(--spacing-tight); margin-bottom: var(--spacing-base-tight); }
+    .tpl-sec-head h3 { margin: 0; color: var(--content-base); }
+    .q-row.is-dragging { opacity: .4; }
+    .q-row.is-drop-target { box-shadow: inset 0 2px 0 var(--border-brand); }
+    .tpl-empty { padding: var(--spacing-super-loose) 0; display: flex; flex-direction: column; align-items: center; gap: var(--spacing-base); color: var(--content-secondary); }
+    .inline-notif[hidden] { display: none; }
+    /* variables */
+    .var-grid-head, .var-grid-row { display: grid; grid-template-columns: 1fr 160px; align-items: center; gap: var(--spacing-base); padding: var(--spacing-base-tight) 0; }
+    .var-grid-head { border-bottom: 1px solid var(--border-base); color: var(--content-subtle); }
+    .var-grid-row { border-bottom: 1px solid var(--border-base); color: var(--content-base); min-height: 52px; }
+    .var-grid-row:last-child { border-bottom: none; }
+  </style>
+</head>
+<body data-page="template" data-variant="flexible">
+<script src="prototypes/question-library-toolbar.js"></script>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <div class="mainnav">
+    <div class="mn-portal">
+      <span class="mn-logo"></span>
+      <button class="mn-portal-btn"><b>Coordinator</b> <i data-icon="chevron-down" class="mn-chev"></i></button>
+    </div>
+    <nav class="mn-nav" aria-label="Main">
+      <a class="mn-item"><i data-icon="home"></i> Home</a>
+      <a class="mn-item"><i data-icon="clipboard"></i> Surveys <i data-icon="chevron-down" class="mn-chev"></i></a>
+      <a class="mn-item is-active" aria-current="page"><i data-icon="book-open"></i> Question library</a>
+      <a class="mn-item"><i data-icon="refresh"></i> 360&deg; Feedback</a>
+      <a class="mn-item"><i data-icon="structure"></i> Organization <i data-icon="chevron-down" class="mn-chev"></i></a>
+    </nav>
+    <div class="mn-foot">
+      <a class="mn-item"><i data-icon="help"></i> Help &amp; learn</a>
+      <div class="mn-foot-divider"></div>
+      <div class="mn-user">
+        <div class="av av-36 av-blue">JR</div>
+        <div class="mn-meta">
+          <div class="mn-name">Jamal van Rooijen</div>
+          <div class="mn-org">Effectory B.V.</div>
+        </div>
+        <i data-icon="chevron-up"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <main class="app-main">
+
+    <!-- a layer deeper than the library: a back action instead of breadcrumbs -->
+    <nav class="breadcrumb" aria-label="Back">
+      <button class="btn btn-secondary" id="btnBack"><i data-icon="arrow-left"></i> Back</button>
+    </nav>
+
+    <div class="app-main-inner">
+
+      <!-- Standard templates can't be edited -->
+      <div class="inline-notif is-warn is-one-liner" id="lockNotif" role="status" hidden>
+        <img class="inline-notif-icon" src="assets/icons/notification-warning.svg" alt="" />
+        <div class="inline-notif-content">
+          <span class="inline-notif-text">
+            <span class="inline-notif-msg">This is a standard template. You are not able to edit or remove this template.</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Template header -->
+      <div class="tpl-head">
+        <span class="tpl-head-img" id="tplImg"></span>
+        <h1 class="ph-title" id="tplName"></h1>
+        <div class="tpl-head-actions" id="tplActions"></div>
+      </div>
+
+      <!-- Details / Questions / Variables -->
+      <div class="card card-outlined tpl-card">
+        <div class="tabs tpl-tabs" role="tablist">
+          <a class="tab is-active" role="tab" data-panel="details">Details</a>
+          <a class="tab" role="tab" data-panel="questions">Questions</a>
+          <a class="tab" role="tab" data-panel="variables">Variables</a>
+        </div>
+        <div class="card-body">
+
+          <div id="panel-details" class="tpl-details" style="margin-top: var(--spacing-loose);">
+            <div class="tf-wrap">
+              <div class="tf-lbl-row">
+                <label class="tf-lbl">Template title</label>
+                <button class="tf-info-btn" aria-label="More information" data-tt="The name of this template in the library and in survey creation"><i data-icon="info"></i></button>
+              </div>
+              <div class="tf-field"><input class="tf" id="fldTitle" type="text" /></div>
+            </div>
+            <div class="ta-wrap">
+              <div class="ta-lbl-row">
+                <label class="ta-lbl">Template description</label>
+                <button class="ta-info-btn" aria-label="More information" data-tt="Shown when someone picks this template for a survey"><i data-icon="info"></i></button>
+              </div>
+              <div class="rte" id="rte">
+                <div class="rte-toolbar" id="rteToolbar">
+                  <button class="sel-btn sel-btn-inline" data-cmd="block"><span class="sel-btn-name">Paragraph</span> <i data-icon="chevron-down"></i></button>
+                  <span class="rte-sep"></span>
+                  <button class="ib ib-36 ib-tertiary" data-cmd="bold" aria-label="Bold" data-tt="Bold"><i data-icon="bold"></i></button>
+                  <button class="ib ib-36 ib-tertiary" data-cmd="italic" aria-label="Italic" data-tt="Italic"><i data-icon="italic"></i></button>
+                  <button class="ib ib-36 ib-tertiary" data-cmd="underline" aria-label="Underline" data-tt="Underline"><i data-icon="underline"></i></button>
+                  <span class="rte-sep"></span>
+                  <button class="ib ib-36 ib-tertiary" data-cmd="insertUnorderedList" aria-label="Bulleted list" data-tt="Bulleted list"><i data-icon="list-unordered"></i></button>
+                  <button class="ib ib-36 ib-tertiary" data-cmd="link" aria-label="Link" data-tt="Link"><i data-icon="link"></i></button>
+                </div>
+                <div class="rte-body" id="rteBody" contenteditable="true"></div>
+              </div>
+            </div>
+          </div>
+
+          <div id="panel-questions" hidden>
+            <div class="ql-toolbar" style="margin-top: var(--spacing-loose);">
+              <div class="slt-wrap ql-lang">
+                <div class="slt-lbl">Library languages <i data-icon="info" data-tt="The languages this template is available in"></i></div>
+                <div class="slt" tabindex="0" role="button" aria-haspopup="listbox">
+                  <span class="slt-left"><span class="slt-val"></span></span>
+                  <i data-icon="chevron-down"></i>
+                </div>
+              </div>
+              <div class="search-wrap">
+                <span class="search-icon"><i data-icon="search"></i></span>
+                <input type="search" class="srch" id="qSearch" placeholder="Search" aria-label="Search questions" />
+              </div>
+              <button class="btn btn-primary" id="btnAddQuestions" hidden><i data-icon="plus"></i> Add questions <i data-icon="chevron-down"></i></button>
+            </div>
+            <div id="tplSections"></div>
+          </div>
+
+          <div id="panel-variables" hidden>
+            <div id="varList" style="margin-top: var(--spacing-loose);"></div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script src="icons.js"></script>
+<script>
+(function () {
+  "use strict";
+  var LIST = "prototypes/question-library-flexible-templates.html";
+  var slug = new URLSearchParams(location.search).get("t");
+  var t = slug && QL.getTemplate(slug);
+  if (!t) { location.href = LIST; return; }
+  /* templates are editable in both versions; benchmark questions inside stay variant-only */
+  var editable = true;
+  var sections = QL.templateSections(t);   /* working copy, session-scoped */
+  var status = t.status;
+  var term = "";
+
+  document.title = QL.fill(t.name) + " - My Effectory";
+
+  document.getElementById("btnBack").addEventListener("click", function () {
+    if (document.referrer && document.referrer.indexOf(location.origin) === 0 && history.length > 1) history.back();
+    else location.href = LIST;
+  });
+
+  document.getElementById("lockNotif").hidden = editable;
+
+  /* ── header ── */
+  var imgEl = document.getElementById("tplImg");
+  if (t.img) imgEl.innerHTML = '<img src="assets/illustrations/templates/' + t.img + '.svg" alt="" />';
+  else { imgEl.classList.add("is-doc"); imgEl.innerHTML = '<i data-icon="clipboard-note"></i>'; }
+
+  function count() { return sections.reduce(function (n, s) { return n + s.qs.length; }, 0); }
+  function renderHeader() {
+    document.getElementById("tplName").textContent = t.name;
+    var a = document.getElementById("tplActions");
+    a.innerHTML =
+      '<span class="info" data-tt="' + (t.custom ? "Custom template" : "Standard template") + ' · ' + count() + ' questions"><i data-icon="info"></i></span>' +
+      (status === "published"
+        ? '<span class="tag tag-positive">Published</span>'
+        : (editable ? '<button class="btn btn-secondary" id="btnPublishTpl">Publish template</button>' : '<span class="tag is-draft">Unpublished</span>')) +
+      '<button class="ib ib-36 ib-tertiary" id="tplKebab" aria-label="More options" data-tt="More options"><i data-icon="more-vertical"></i></button>';
+    var pub = a.querySelector("#btnPublishTpl");
+    if (pub) pub.addEventListener("click", function () {
+      status = "published";
+      QL.setTplStatus(slug, "published");
+      QL.notify("Template published", "It's now available when creating a survey.");
+      renderHeader();
+    });
+    a.querySelector("#tplKebab").addEventListener("click", function (e) {
+      QL.pickMenu(e.currentTarget, ["Duplicate template"], -1, function () {
+        var copy = {
+          slug: slug + "-copy-" + Date.now().toString(36),
+          name: "Copy of " + t.name, img: t.img, desc: t.desc,
+          sections: sections.map(function (s) { return { name: s.name, qs: s.qs.map(function (q) { return [q.text, q.type, q.custom]; }) }; })
+        };
+        QL.addCustomTemplate(copy);
+        location.href = "prototypes/question-library-flexible-template.html?t=" + copy.slug;
+      });
+    });
+    if (window.Icons) window.Icons.render();
+  }
+
+  /* ── local tabs ── */
+  document.querySelectorAll(".tpl-tabs .tab").forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      document.querySelectorAll(".tpl-tabs .tab").forEach(function (x) { x.classList.toggle("is-active", x === tab); });
+      ["details", "questions", "variables"].forEach(function (p) {
+        document.getElementById("panel-" + p).hidden = tab.getAttribute("data-panel") !== p;
+      });
+    });
+  });
+
+  /* ── details ── */
+  var fldTitle = document.getElementById("fldTitle");
+  fldTitle.value = t.name;
+  var rteBody = document.getElementById("rteBody");
+  rteBody.innerHTML = t.desc || "<p></p>";
+  if (!editable) {
+    fldTitle.readOnly = true;
+    fldTitle.classList.add("is-locked");
+    rteBody.contentEditable = "false";
+    document.getElementById("rte").classList.add("is-locked");
+    document.getElementById("rteToolbar").querySelectorAll("button").forEach(function (b) {
+      b.disabled = true;
+      b.classList.add("is-disabled");
+    });
+  } else {
+    fldTitle.addEventListener("change", function () {
+      var v = fldTitle.value.trim();
+      if (!v) { fldTitle.value = t.name; return; }
+      t.name = v;
+      QL.setTplName(slug, v);
+      renderHeader();
+    });
+    document.getElementById("rteToolbar").addEventListener("click", function (e) {
+      var b = e.target.closest("[data-cmd]");
+      if (!b) return;
+      var cmd = b.getAttribute("data-cmd");
+      rteBody.focus();
+      if (cmd === "block") {
+        QL.pickMenu(b, ["Paragraph", "Heading 1", "Heading 2", "Heading 3"], 0, function (i) {
+          document.execCommand("formatBlock", false, ["p", "h2", "h3", "h4"][i]);
+        });
+      } else if (cmd === "link") {
+        var url = prompt("Link to:", "https://");
+        if (url) document.execCommand("createLink", false, url);
+      } else {
+        document.execCommand(cmd, false, null);
+      }
+    });
+  }
+
+  /* ── questions ── */
+  var secWrap = document.getElementById("tplSections");
+  var addBtn = document.getElementById("btnAddQuestions");
+  addBtn.hidden = !editable;
+
+  function chip(q) {
+    var m = QLQ.QTYPES[QLQ.FROM_QL[q.type]];
+    return '<div class="text-medium q-scale"><span class="q-scale-icon ' + QL.TYPES[q.type].cls + '"><i data-icon="' + m.icon + '"></i></span><span>' + QL.esc(m.label) + "</span></div>";
+  }
+  function renderSections() {
+    var html = sections.map(function (s, si) {
+      var rows = s.qs.map(function (q, qi) {
+        if (term && QL.fill(q.text).toLowerCase().indexOf(term.toLowerCase()) === -1) return "";
+        return '<div class="q-row"' + (editable ? ' draggable="true"' : "") + ' data-s="' + si + '" data-q="' + qi + '">' +
+          (editable ? '<span class="q-drag" data-tt="Drag to reorder"><i data-icon="drag-drop"></i></span>' : "") +
+          '<div class="text-medium text-w500 q-text" style="flex:1;">' + QL.hl(q.text, term) + "</div>" +
+          chip(q) +
+          (q.custom ? '<span class="tag tag-highlight">Custom</span>' : '<span class="tag is-standard">Standard</span>') +
+          (editable ? '<button class="ib ib-24 ib-tertiary" data-kebab aria-label="More options" data-tt="More options"><i data-icon="more-vertical"></i></button>' : "") +
+          "</div>";
+      }).join("");
+      if (term && !rows) return "";
+      return '<div class="tpl-sec">' +
+        '<div class="tpl-sec-head">' +
+        (editable ? '<span class="q-drag" data-tt="Drag to reorder" data-sechandle="' + si + '"><i data-icon="drag-drop"></i></span>' : "") +
+        '<h3 class="text-l4">' + QL.esc(s.name) + "</h3>" +
+        '<span class="q-count">' + s.qs.length + "</span></div>" +
+        (rows ? '<div class="q-list">' + rows + "</div>"
+              : '<div class="q-list"><div class="q-row"><span class="text-medium" style="color: var(--content-secondary);">No questions in this section yet</span></div></div>') +
+        "</div>";
+    }).join("");
+    if (!sections.length) {
+      html = '<div class="tpl-empty"><p class="text-medium" style="margin:0;">This template has no questions yet.</p>' +
+        (editable ? '<button class="btn btn-secondary" id="emptyAdd"><i data-icon="plus"></i> Add questions</button>' : "") +
+        "</div>";
+    }
+    secWrap.innerHTML = html;
+    var ea = secWrap.querySelector("#emptyAdd");
+    if (ea) ea.addEventListener("click", function (e) { addMenu(e.currentTarget); });
+    bindRows();
+    renderHeader();
+    if (window.Icons) window.Icons.render();
+  }
+
+  function bindRows() {
+    if (!editable) return;
+    secWrap.querySelectorAll(".q-row[data-q]").forEach(function (row) {
+      var s = sections[+row.getAttribute("data-s")];
+      var q = s && s.qs[+row.getAttribute("data-q")];
+      if (!q) return;
+      var kebab = row.querySelector("[data-kebab]");
+      if (kebab) kebab.addEventListener("click", function (e) {
+        e.stopPropagation();
+        QL.pickMenu(e.currentTarget, ["Remove from template"], -1, function () {
+          s.qs.splice(s.qs.indexOf(q), 1);
+          QL.notify("Question removed from this template");
+          renderSections();
+        });
+      });
+      row.addEventListener("dragstart", function () { row.classList.add("is-dragging"); });
+      row.addEventListener("dragend", function () {
+        row.classList.remove("is-dragging");
+        secWrap.querySelectorAll(".is-drop-target").forEach(function (r) { r.classList.remove("is-drop-target"); });
+      });
+      row.addEventListener("dragover", function (e) {
+        var dragging = secWrap.querySelector(".q-row.is-dragging");
+        if (!dragging || dragging === row || dragging.parentElement !== row.parentElement) return;
+        e.preventDefault();
+        row.classList.add("is-drop-target");
+      });
+      row.addEventListener("dragleave", function () { row.classList.remove("is-drop-target"); });
+      row.addEventListener("drop", function (e) {
+        e.preventDefault();
+        var dragging = secWrap.querySelector(".q-row.is-dragging");
+        if (!dragging || dragging === row || dragging.parentElement !== row.parentElement) return;
+        var from = +dragging.getAttribute("data-q"), to = +row.getAttribute("data-q");
+        s.qs.splice(to, 0, s.qs.splice(from, 1)[0]);
+        renderSections();
+      });
+    });
+  }
+
+  function libraryPool() {
+    var out = [];
+    QL.TOPICS.forEach(function (topic) {
+      topic.qs.forEach(function (q) { out.push({ text: q[0], type: q[1], topic: topic.name }); });
+    });
+    return out;
+  }
+  function inTemplate(text) {
+    return sections.some(function (s) { return s.qs.some(function (q) { return q.text === text; }); });
+  }
+  function targetSection() {
+    if (!sections.length) sections.push({ name: "New questions", qs: [] });
+    return sections[sections.length - 1];
+  }
+  function addMenu(trigger) {
+    QL.pickMenu(trigger, ["From your library", "Write a new question"], -1, function (i) {
+      if (i === 0) fromLibraryDialog();
+      else QLQ.openCreate({
+        topics: sections.map(function (s) { return s.name; }).concat(sections.length ? [] : ["New questions"]),
+        defaultTopic: (sections[0] || {}).name || "New questions",
+        pool: [],
+        onAdd: function (nq) {
+          var s = sections.filter(function (x) { return x.name === nq.topic; })[0];
+          if (!s) { s = { name: nq.topic, qs: [] }; sections.push(s); }
+          s.qs.push({ text: nq.text, type: nq.type, custom: true });
+          renderSections();
+        }
+      });
+    });
+  }
+  addBtn.addEventListener("click", function (e) { addMenu(e.currentTarget); });
+
+  function fromLibraryDialog() {
+    var overlay = QL.openOverlay(
+      '<div class="overlay"><div class="dialog dialog-l" role="dialog" aria-modal="true" aria-labelledby="fl-title">' +
+      '<button class="dialog-close" aria-label="Close" data-close><i data-icon="cross"></i></button>' +
+      '<div class="dialog-header is-sm"><div class="dialog-header-top"><h3 class="dialog-title" id="fl-title">Add questions from your library</h3></div>' +
+      '<p class="dialog-subtitle">Questions you add keep their benchmark and translations.</p></div>' +
+      '<div class="dialog-body">' +
+      '<div class="search-wrap" style="width: 320px; margin-bottom: var(--spacing-base);"><span class="search-icon"><i data-icon="search"></i></span>' +
+      '<input type="search" class="srch" id="flSearch" placeholder="Search" aria-label="Search library questions" /></div>' +
+      '<div class="q-list" id="flList" style="max-height: 50vh; overflow-y: auto;"></div>' +
+      "</div>" +
+      '<div class="dialog-footer"><button class="btn btn-primary" data-close>Done</button></div>' +
+      "</div></div>"
+    );
+    var pool = libraryPool();
+    var flTerm = "";
+    var listEl = overlay.querySelector("#flList");
+    function renderList() {
+      listEl.innerHTML = pool.map(function (q, i) {
+        if (flTerm && QL.fill(q.text).toLowerCase().indexOf(flTerm.toLowerCase()) === -1) return "";
+        var added = inTemplate(q.text);
+        return '<div class="q-row"><div class="text-medium q-text" style="flex:1;">' + QL.hl(q.text, flTerm) + "</div>" +
+          QL.scaleChip(q.type) +
+          (added ? '<button class="btn btn-secondary is-disabled" disabled>Added</button>'
+                 : '<button class="btn btn-secondary" data-add="' + i + '">Add</button>') +
+          "</div>";
+      }).join("") || '<div class="q-row"><span class="text-medium" style="color: var(--content-secondary);">No questions match your search.</span></div>';
+      listEl.querySelectorAll("[data-add]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var q = pool[+b.getAttribute("data-add")];
+          targetSection().qs.push({ text: q.text, type: q.type, custom: false });
+          renderList();
+          renderSections();
+        });
+      });
+      if (window.Icons) window.Icons.render();
+    }
+    overlay.querySelector("#flSearch").addEventListener("input", function (e) { flTerm = e.target.value.trim(); renderList(); });
+    renderList();
+  }
+
+  document.getElementById("qSearch").addEventListener("input", function (e) { term = e.target.value.trim(); renderSections(); });
+
+  /* ── variables ── */
+  function renderVariables() {
+    var org = 0, mgr = 0;
+    sections.forEach(function (s) { s.qs.forEach(function (q) {
+      if (q.text.indexOf("{org}") !== -1) org++;
+      if (q.text.indexOf("{manager}") !== -1) mgr++;
+    }); });
+    var rows = [];
+    if (mgr) rows.push(["manager", mgr]);
+    if (org) rows.push([QL.ORG, org]);
+    document.getElementById("varList").innerHTML = rows.length
+      ? '<div class="var-grid-head text-l6"><span>Variable</span><span>Occurrences</span></div>' +
+        rows.map(function (r) { return '<div class="var-grid-row text-medium"><span>' + QL.esc(r[0]) + "</span><span>" + r[1] + "</span></div>"; }).join("")
+      : '<p class="text-medium" style="color: var(--content-secondary); margin: 0;">This template has no variables.</p>';
+  }
+  document.querySelector('[data-panel="variables"]').addEventListener("click", renderVariables);
+
+  renderHeader();
+  renderSections();
+  renderVariables();
+})();
+</script>
+</body>
+</html>

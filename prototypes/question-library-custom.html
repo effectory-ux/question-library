@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Question library - Created in surveys - My Effectory</title>
+  <base href="../" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="foundation.css" />
+  <link rel="stylesheet" href="components.css" />
+  <link rel="stylesheet" href="prototypes/question-library-cq.css" />
+  <link rel="stylesheet" href="prototypes/question-library-toolbar.css" />
+  <script src="prototypes/question-library-shared.js"></script>
+  <script src="prototypes/question-library-cq.js"></script>
+  <style>
+    /* incoming questions: custom questions created in surveys, waiting for curation */
+    .ib-intro { margin: 0 0 var(--spacing-base); color: var(--content-secondary); }
+    .ib-meta { display: block; margin-top: var(--spacing-extra-tight); font-size: 12px; color: var(--content-secondary); }
+    .ib-row .btn { flex: none; }
+    /* the combine suggestion: a card of near-duplicates above the list */
+    .ib-cluster { padding: var(--spacing-base); margin-bottom: var(--spacing-base); }
+    .ib-cluster-head { display: flex; align-items: center; gap: var(--spacing-tight); margin-bottom: var(--spacing-extra-tight); }
+    .ib-cluster-head i[data-icon] { width: 16px; height: 16px; display: flex; color: var(--content-brand, var(--content-primary)); }
+    .ib-cluster-note { margin: 0 0 var(--spacing-base-tight); font-size: 14px; color: var(--content-secondary); }
+    .ib-cluster-actions { display: flex; gap: var(--spacing-tight); margin-top: var(--spacing-base-tight); }
+    /* combine dialog: pick the main wording */
+    .cmb-opt { display: flex; align-items: flex-start; gap: var(--spacing-tight); width: 100%; padding: var(--spacing-base-tight);
+      border: 1px solid var(--border-primary); border-radius: 8px; background: var(--bg-base); cursor: pointer; text-align: left; font: inherit; }
+    .cmb-opt + .cmb-opt { margin-top: var(--spacing-tight); }
+    .cmb-opt.is-on { border-color: var(--border-brand, var(--content-brand)); background: var(--bg-secondary); }
+    .cmb-opt .rb-wrap { margin-top: 2px; }
+    .cmb-opt-meta { display: block; margin-top: 2px; font-size: 12px; color: var(--content-secondary); }
+    .cmb-topic { margin-top: var(--spacing-base); }
+  </style>
+</head>
+<body data-page="incoming" data-variant="split">
+<script src="prototypes/question-library-toolbar.js"></script>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <div class="mainnav">
+    <div class="mn-portal">
+      <span class="mn-logo"></span>
+      <button class="mn-portal-btn"><b>Coordinator</b> <i data-icon="chevron-down" class="mn-chev"></i></button>
+    </div>
+    <nav class="mn-nav" aria-label="Main">
+      <a class="mn-item"><i data-icon="home"></i> Home</a>
+      <a class="mn-item"><i data-icon="clipboard"></i> Surveys <i data-icon="chevron-down" class="mn-chev"></i></a>
+      <a class="mn-item is-active" aria-current="page"><i data-icon="book-open"></i> Question library</a>
+      <a class="mn-item"><i data-icon="refresh"></i> 360&deg; Feedback</a>
+      <a class="mn-item"><i data-icon="structure"></i> Organization <i data-icon="chevron-down" class="mn-chev"></i></a>
+    </nav>
+    <div class="mn-foot">
+      <a class="mn-item"><i data-icon="help"></i> Help &amp; learn</a>
+      <div class="mn-foot-divider"></div>
+      <div class="mn-user">
+        <div class="av av-36 av-blue">JR</div>
+        <div class="mn-meta">
+          <div class="mn-name">Jamal van Rooijen</div>
+          <div class="mn-org">Effectory B.V.</div>
+        </div>
+        <i data-icon="chevron-up"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <main class="app-main">
+
+
+    <div class="app-main-inner">
+
+      <!-- Page header -->
+      <div class="ph">
+        <div class="ph-row">
+          <div class="ph-left">
+            <div class="ph-title-row">
+              <h1 class="ph-title">Question library</h1>
+              <span class="tag tag-info">Beta</span>
+            </div>
+            <div class="ph-meta">Explore the questions you can ask in your surveys</div>
+          </div>
+          <div class="ph-controls">
+            <button class="btn btn-primary" id="btnPublish"><i data-icon="send"></i> Publish</button>
+          </div>
+        </div>
+        <div class="ph-tabs">
+          <a class="ph-tab" href="prototypes/question-library-questions.html">Questions</a>
+          <a class="ph-tab is-active" aria-current="page" id="tabInbox" href="prototypes/question-library-custom.html">Created in surveys</a>
+          <a class="ph-tab" href="prototypes/question-library-templates.html">Templates</a>
+          <a class="ph-tab" href="prototypes/question-library-themes.html">Themes</a>
+          <a class="ph-tab" href="prototypes/question-library-variables.html">Variables</a>
+        </div>
+        <div class="ph-divider"></div>
+      </div>
+
+      <p class="text-medium ib-intro">Custom questions created in surveys across your organisation. Only their creators can use them until you add them to the library.</p>
+
+      <!-- Toolbar -->
+      <div class="ql-toolbar">
+        <div class="search-wrap" style="margin-left: 0; width: 320px;">
+          <span class="search-icon"><i data-icon="search"></i></span>
+          <input type="search" class="srch" id="ibSearch" placeholder="Search these questions" aria-label="Search these questions" />
+        </div>
+      </div>
+
+      <!-- Combine suggestions -->
+      <div id="clusters"></div>
+
+      <!-- The incoming list -->
+      <div class="q-topic">
+        <div class="q-head">
+          <h2 class="text-l5">All questions</h2>
+          <span class="q-count" id="ibCount"></span>
+        </div>
+        <div class="q-list" id="inboxList"></div>
+        <p class="text-medium" id="noResults" hidden style="color: var(--content-secondary); margin: var(--spacing-base-tight) 0 0;">No questions match your search.</p>
+        <p class="text-medium" id="emptyInbox" hidden style="color: var(--content-secondary); margin: var(--spacing-base-tight) 0 0;">No new questions from surveys. Questions people create in their surveys show up here.</p>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script src="icons.js"></script>
+<script>
+(function () {
+  "use strict";
+  var listEl = document.getElementById("inboxList");
+  var clustersEl = document.getElementById("clusters");
+  var noResults = document.getElementById("noResults");
+  var emptyInbox = document.getElementById("emptyInbox");
+  var term = "";
+  var dismissed = {}; // "keep separate" choices, per visit
+
+  /* working copy, most-used first: usage is the promotion argument */
+  var items = QL.inboxQuestions().slice().sort(function (a, b) { return (b.uses || 0) - (a.uses || 0); });
+  var topicNames = QL.TOPICS.map(function (t) { return t.name; });
+  function short(t) { t = QL.fill(t); return t.length > 48 ? t.slice(0, 45) + "…" : t; }
+  function uses(q) { return (q.uses || 0) === 1 ? "Used in 1 survey" : "Used in " + (q.uses || 0) + " surveys"; }
+
+  /* ── smart recommendations: greedy clustering on wording similarity ── */
+  function findClusters() {
+    var taken = {}, out = [];
+    items.forEach(function (q) {
+      if (taken[q.text] || dismissed[q.text]) return;
+      var pool = items.filter(function (x) { return x !== q && !taken[x.text] && !dismissed[x.text]; });
+      var sim = QLQ.similar(q.text, pool, 6).filter(function (s) { return !dismissed[s.text]; });
+      if (!sim.length) return;
+      var group = [q].concat(sim);
+      group.forEach(function (g) { taken[g.text] = true; });
+      out.push(group);
+    });
+    return out;
+  }
+
+  function render() {
+    var clusters = findClusters();
+    var inCluster = {};
+    clusters.forEach(function (g) { g.forEach(function (q) { inCluster[q.text] = true; }); });
+
+    clustersEl.innerHTML = term ? "" : clusters.map(function (g, gi) {
+      return '<div class="card card-outlined ib-cluster" data-g="' + gi + '">' +
+        '<div class="ib-cluster-head"><i data-icon="lightbulb"></i><h2 class="text-l5">These questions look similar</h2></div>' +
+        '<p class="ib-cluster-note">Combine them into one library question — the different wordings become variants.</p>' +
+        '<div class="q-list">' +
+        g.map(function (q) {
+          return '<div class="q-row">' +
+            '<div class="text-medium text-w500 q-text" style="flex:1;">' + QL.esc(q.text) +
+            '<span class="ib-meta text-w400">' + uses(q) + " · " + QL.esc(q.by) + " · Added " + QL.esc(q.added) + "</span></div>" +
+            QL.scaleChip(q.type) + "</div>";
+        }).join("") +
+        "</div>" +
+        '<div class="ib-cluster-actions">' +
+        '<button class="btn btn-secondary" data-combine="' + gi + '">Combine into one question</button>' +
+        '<button class="btn btn-tertiary" data-separate="' + gi + '">Keep separate</button>' +
+        "</div></div>";
+    }).join("");
+
+    var shown = items.filter(function (q) {
+      if (term) return QL.matches(q.text, term);
+      return !inCluster[q.text];
+    });
+    document.getElementById("ibCount").textContent = items.length;
+    listEl.innerHTML = shown.map(function (q) {
+      var i = items.indexOf(q);
+      return '<div class="q-row ib-row">' +
+        '<div class="text-medium text-w500 q-text" style="flex:1;">' + QL.hl(q.text, term) +
+        '<span class="ib-meta text-w400">' + uses(q) + " · " + QL.esc(q.by) + " · Added " + QL.esc(q.added) + "</span></div>" +
+        QL.scaleChip(q.type) +
+        '<button class="btn btn-secondary" data-promote="' + i + '">Review</button>' +
+        "</div>";
+    }).join("");
+    noResults.hidden = !term || !!shown.length;
+    emptyInbox.hidden = !!items.length;
+
+    clustersEl.querySelectorAll("[data-combine]").forEach(function (b) {
+      b.addEventListener("click", function () { combineDialog(clusters[+b.getAttribute("data-combine")]); });
+    });
+    clustersEl.querySelectorAll("[data-separate]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        clusters[+b.getAttribute("data-separate")].forEach(function (q) { dismissed[q.text] = true; });
+        render();
+      });
+    });
+    listEl.querySelectorAll("[data-promote]").forEach(function (b) {
+      b.addEventListener("click", function () { promoteDialog(items[+b.getAttribute("data-promote")]); });
+    });
+    if (window.Icons) window.Icons.render();
+  }
+
+  /* ── a topic picker row (shared by both dialogs) ── */
+  function topicRow(defaultTopic) {
+    var wrap = document.createElement("div");
+    wrap.className = "slt-wrap cmb-topic";
+    wrap.innerHTML = '<div class="slt-lbl">Topic</div>' +
+      '<div class="slt" tabindex="0" role="button" aria-haspopup="listbox">' +
+      '<span class="slt-left"><span class="slt-val">' + QL.esc(defaultTopic) + "</span></span>" +
+      '<i data-icon="chevron-down"></i></div>';
+    var val = defaultTopic;
+    var slt = wrap.querySelector(".slt");
+    slt.addEventListener("click", function () {
+      QL.pickMenu(slt, topicNames, topicNames.indexOf(val), function (i) {
+        val = topicNames[i];
+        wrap.querySelector(".slt-val").textContent = val;
+      });
+    });
+    return { el: wrap, value: function () { return val; } };
+  }
+
+  function removeFromInbox(texts) {
+    QL.inboxRemove(texts);
+    items = items.filter(function (q) { return texts.indexOf(q.text) === -1; });
+    var tab = document.getElementById("tabInbox");
+    if (tab) tab.textContent = "Created in surveys (" + items.length + ")";
+  }
+
+  /* ── review a question and add it to the library: the question settings
+     dialog in review mode — topic on top, wording and translations editable ── */
+  function promoteDialog(q) {
+    QLQ.openReview(
+      { text: q.text, type: q.type, topic: "", usedIn: [] },
+      {
+        standard: false, topics: topicNames, pool: [],
+        review: { uses: q.uses || 0, by: q.by },
+        onConfirm: function (u) {
+          QL.libAdd({ text: u.text, type: u.type, topic: u.topic, added: "Today", usedIn: [] });
+          removeFromInbox([q.text]);
+          QL.trackChange("Added “" + short(u.text) + "” to the library");
+          QL.notify("Question added to the library", "Find it under " + u.topic + ". Publish to make it available to everyone.");
+          render();
+        }
+      }
+    );
+  }
+
+  /* ── combine near-duplicates into one library question with variants ── */
+  function combineDialog(group) {
+    var overlay = QL.openOverlay(
+      '<div class="overlay"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="cm-title" style="width: 640px;">' +
+      '<button class="dialog-close" aria-label="Close" data-close><i data-icon="cross"></i></button>' +
+      '<div class="dialog-header"><div class="dialog-header-top"><h3 class="dialog-title" id="cm-title">Combine into one question</h3></div>' +
+      '<p class="dialog-subtitle">Choose the main wording. The other wordings become variants of the same library question. Results stay with the wording they were collected under.</p></div>' +
+      '<div class="dialog-body"><div id="cmOpts" role="radiogroup" aria-label="Main wording"></div><div id="cmTopic"></div></div>' +
+      '<div class="dialog-footer"><button class="btn btn-secondary" data-close>Cancel</button>' +
+      '<button class="btn btn-primary" id="cmGo">Combine and add</button></div>' +
+      "</div></div>"
+    );
+    var pick = 0; // default: the most-used wording (group is usage-sorted)
+    var opts = overlay.querySelector("#cmOpts");
+    function renderOpts() {
+      opts.innerHTML = group.map(function (q, i) {
+        return '<button type="button" class="cmb-opt' + (i === pick ? " is-on" : "") + '" role="radio" aria-checked="' + (i === pick) + '" data-p="' + i + '">' +
+          '<span class="rb-wrap"><input type="radio" class="rb" name="cmb" ' + (i === pick ? "checked" : "") + ' tabindex="-1" /></span>' +
+          '<span class="text-medium text-w500">' + QL.esc(q.text) +
+          '<span class="cmb-opt-meta text-w400">' + uses(q) + " · " + QL.esc(q.by) + "</span></span></button>";
+      }).join("");
+      opts.querySelectorAll("[data-p]").forEach(function (b) {
+        b.addEventListener("click", function () { pick = +b.getAttribute("data-p"); renderOpts(); });
+      });
+    }
+    renderOpts();
+    var topic = topicRow(topicNames[0]);
+    overlay.querySelector("#cmTopic").appendChild(topic.el);
+    if (window.Icons) window.Icons.render();
+    overlay.querySelector("#cmGo").addEventListener("click", function () {
+      var main = group[pick];
+      var variants = group.filter(function (q) { return q !== main; }).map(function (q) { return q.text; });
+      QL.libAdd({ text: main.text, type: main.type, topic: topic.value(), added: "Today", usedIn: [], variants: variants });
+      removeFromInbox(group.map(function (q) { return q.text; }));
+      QL.trackChange("Combined " + group.length + " questions into “" + short(main.text) + "”");
+      QL.closeOverlay(overlay);
+      QL.notify("Questions combined", "Added to the library as one question with " + variants.length + " variants. Publish to make it available to everyone.");
+      render();
+    });
+  }
+
+  document.getElementById("ibSearch").addEventListener("input", function (e) { term = e.target.value.trim(); render(); });
+
+  render();
+})();
+</script>
+</body>
+</html>

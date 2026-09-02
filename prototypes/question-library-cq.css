@@ -1,0 +1,690 @@
+/* question-library-cq.css — dialog styles ported from the CYOS phase-2 project
+   (~/Claude/Projects/CYOS/phase-2/styles/app.css). Tokens only; do not hand-edit
+   values here — fix them in the CYOS source and re-extract. */
+
+
+.tag-count { background: var(--bg-secondary); color: var(--content-secondary); border-radius: var(--radius-full); min-width: 22px; justify-content: center; padding: 0 7px; }
+
+
+
+/* ---- Create-a-custom-question dialog ---- */
+/* Figma 6248:26489 — fixed height so the language list has room to scroll. */
+.cq-dialog { width: 1080px; height: min(760px, calc(100vh - 96px)); padding: var(--spacing-extra-loose); gap: var(--spacing-loose); }
+
+.cq-dialog .dialog-title { font-size: 20px; line-height: 28px; }
+
+.cq-body { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: var(--spacing-loose); }
+
+.cq-lbl { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600;
+  color: var(--content-base); }
+
+.cq-lbl .cq-info { display: inline-flex; color: var(--content-subtle); cursor: help; }
+
+.cq-lbl .cq-info i { display: flex; width: 16px; height: 16px; }
+
+.cq-field { display: flex; flex-direction: column; gap: var(--spacing-extra-tight); }
+
+.cq-sel { width: 100%; justify-content: space-between; height: 36px; }
+
+button.sel-btn.cq-sel { font-size: 14px; }
+
+.cq-sel-placeholder { color: var(--content-placeholder); font-weight: 400; }
+
+.cq-menu-wrap { position: relative; }
+
+.cq-menu-wrap.is-block { width: 100%; }
+
+.cq-menu-pop { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 2; }
+
+.cq-menu-scrim { position: fixed; inset: 0; z-index: 1; }
+
+
+/* Selects row (Add to topic + Answer type, side by side above the panel). */
+.cq-selects { display: flex; gap: var(--spacing-base); }
+
+.cq-selects .cq-field { flex: 1; min-width: 0; }
+
+/* Body frame: language list on the left, respondent-eye preview on the right. */
+/* The stage behind a preview carries the SAME grey as the questionnaire list,
+   so a question looks the same in its dialog as it does on the page — and the
+   same design wash lands on both when a design is picked. */
+.cq-frame { flex: 1; min-height: 0; display: flex; align-items: stretch; overflow: hidden;
+  background: var(--bg-secondary); border: 1px solid var(--border-base); border-radius: var(--radius-lg); }
+
+
+/* ---- language list (Figma 6238:25398) ---- */
+.cq-langs { flex: none; width: 240px; display: flex; flex-direction: column; padding: var(--spacing-base);
+  background: var(--bg-base); border: 1px solid var(--border-base); overflow: hidden; }
+
+.cq-langs-head { display: flex; align-items: center; gap: 6px; padding: 4px var(--spacing-tight) var(--spacing-base);
+  font-size: 14px; font-weight: 600; line-height: 22.4px; color: var(--content-base); }
+
+.cq-langs-head.is-count { padding-top: var(--spacing-base); }
+
+/* Only the title flexes — scoping this to `span` also caught the Tooltip's
+   wrapper span, which split the row in half and wrapped the heading. */
+.cq-langs-title { flex: 1; min-width: 0; }
+
+/* Any trailing mark sits flush right, lining up with the rows' own markers. */
+.cq-langs-head > :last-child:not(.cq-langs-title) { margin-left: auto; }
+
+/* The list bleeds across the panel's full right padding so the scrollbar lives
+   in that gutter instead of eating into the rows (6px keeps content clear of it). */
+.cq-langs-scroll { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 1px;
+  margin-right: calc(-1 * var(--spacing-base)); padding-right: 6px;
+  /* Reserve the scrollbar gutter whether or not the list actually overflows —
+     otherwise a short list renders its rows 10px wider than the pinned primary
+     row above it, and the right-hand markers stop lining up. */
+  scrollbar-gutter: stable; }
+
+
+.cq-lang { display: flex; align-items: center; gap: var(--spacing-tight); width: 100%; padding: var(--spacing-tight);
+  border: 0; background: var(--bg-base); border-radius: var(--radius-base); font: inherit; text-align: left;
+  color: var(--content-base); cursor: pointer; }
+
+.cq-lang:hover { background: var(--bg-base-hover); }
+
+.cq-lang.is-active { background: var(--bg-brand-subtle-selected); color: var(--content-brand); }
+
+.cq-lang.is-active .cq-lang-name { font-weight: 600; }
+
+.cq-lang.is-active .cq-lang-country { color: inherit; }
+
+.cq-lang-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.cq-lang-name { font-size: 14px; font-weight: 500; line-height: 22.4px; }
+
+.cq-lang-country { font-size: 12px; font-weight: 400; line-height: 19.2px; color: var(--content-secondary); }
+
+
+/* Flag: 20px box holding an 18.33 x 13.34 leaf, exactly as the DS country marks. */
+.cq-flag, .lang-flag { flex: none; display: grid; place-items: center; width: 20px; height: 20px; }
+
+.cq-flag img, .lang-flag img { display: block; width: 18.33px; height: 13.34px; border-radius: 1px; object-fit: cover;
+  box-shadow: 0 0 0 1px #f5f7fa; /* neutral/N4 — the hairline the DS flags carry */ }
+
+
+/* Anything mid-translation pulses — quieter than a spinner, and it marks the
+   exact items that are working rather than adding a separate status icon. */
+.cq-lang.is-working, .cq-card.is-working, .menu-item.is-working { animation: cq-pulse 1.4s ease-in-out infinite; }
+
+@keyframes cq-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) {
+
+  .cq-lang.is-working, .cq-card.is-working, .menu-item.is-working { animation: none; opacity: .6; }
+}
+
+
+/* ---- preview side ---- */
+.cq-preview { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--spacing-base); padding: var(--spacing-loose); overflow: auto; }
+
+/* The card holds a survey question, so it keeps a readable measure instead of
+   stretching to the grey stage; it only narrows when the dialog does. */
+.cq-card { width: 100%; max-width: 694px; display: flex; flex-direction: column; gap: var(--spacing-base); padding: var(--spacing-loose);
+  background: var(--bg-base); border: 1px solid var(--border-base); border-radius: var(--radius-xl); }
+
+.cq-card-note { display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap;
+  font-size: 12px; line-height: 19.2px; color: var(--content-secondary); }
+
+/* A hand-edited translation whose source has since changed — needs a look. */
+.cq-card-note.is-stale { color: var(--content-warning); }
+
+.cq-note-action { padding: 0; border: 0; background: none; font: inherit; font-weight: 600;
+  color: inherit; text-decoration: underline; cursor: pointer; }
+
+/* Permanent marker on a hand-edited translation — informational, not a warning. */
+.cq-lang-manual { display: flex; flex: none; color: var(--content-info); }
+
+.cq-lang.is-active .cq-lang-manual { color: inherit; }
+
+.cq-answer { width: 100%; padding: var(--spacing-tight) 0 0; }
+
+
+/* Benchmark note sits in the footer beside Cancel/Create, so the frame stays
+   free for a long description. Regular weight — it's an aside, not a label. */
+.cq-bench-note { display: inline-flex; align-items: center; gap: 6px; margin-right: var(--spacing-tight);
+  font-size: 14px; font-weight: 400; line-height: 22.4px; color: var(--content-secondary); }
+
+.cq-bench-note i { color: var(--content-secondary); }
+
+
+/* Compact (< ~1160px): the side list becomes a "Languages" dropdown on top.
+   The dialog sizes to its content here instead of holding a fixed height —
+   with no list to scroll, a nested scroller inside the frame is just noise. */
+.cq-frame.is-compact { flex-direction: column; }
+
+.cq-frame.is-compact .cq-preview { justify-content: flex-start; overflow: visible; }
+
+.cq-langsel { width: 100%; }
+@media (max-width: 1160px) {
+
+  .cq-dialog { height: auto; }
+}
+
+
+/* Shown when a translation language is opened before the source exists. */
+.cq-empty { max-width: 420px; display: flex; flex-direction: column; align-items: center; gap: var(--spacing-tight);
+  padding: var(--spacing-loose); text-align: center; }
+
+.cq-empty-ic { display: grid; place-items: center; width: 48px; height: 48px; margin-bottom: 4px;
+  border-radius: var(--radius-full); background: var(--bg-base); color: var(--content-secondary); }
+
+.cq-empty-title { font-size: 16px; font-weight: 600; line-height: 24px; color: var(--content-base); }
+
+.cq-empty-body { margin: 0 0 var(--spacing-tight); font-size: 14px; line-height: 1.6; color: var(--content-secondary); }
+
+
+/* Inputs follow the DS text field exactly: white bg, subtle action shadow, and
+   only the BORDER changes on hover/focus (no background swap, no focus ring). */
+/* Height is driven by content (see AutoTextarea), so never show a scrollbar. */
+.cq-qfield, .cq-descfield { width: 100%; text-align: center; font-family: inherit; outline: none;
+  border: 1px solid var(--border-action); border-radius: var(--radius-base); background: var(--bg-input);
+  box-shadow: var(--sh-action); color: var(--content-base); resize: none; overflow: hidden; transition: border-color .1s; }
+
+.cq-qfield { font-size: 16px; font-weight: 600; padding: 12px 16px; min-height: 48px; line-height: 24px; }
+
+.cq-qfield::placeholder { color: var(--content-placeholder); font-weight: 600; }
+
+.cq-descfield { font-size: 14px; font-weight: 400; padding: 8px 12px; min-height: 38px; line-height: 20px; }
+
+.cq-descfield::placeholder { color: var(--content-placeholder); }
+
+.cq-qfield:hover, .cq-descfield:hover { border-color: var(--border-action-hover); }
+
+.cq-qfield:focus, .cq-descfield:focus { border-color: var(--border-brand); }
+
+.cq-qfield.is-error, .cq-descfield.is-error { border-color: var(--border-negative); }
+
+.cq-field .tf-err { margin-top: 2px; }
+
+
+/* Inputs follow the DS text field exactly: white bg, subtle action shadow, and
+   only the BORDER changes on hover/focus (no background swap, no focus ring). */
+.cq-qfield, .cq-descfield { width: 100%; text-align: center; font-family: inherit; outline: none;
+  border: 1px solid var(--border-action); border-radius: var(--radius-base); background: var(--bg-input);
+  box-shadow: var(--sh-action); color: var(--content-base); resize: none; overflow: hidden; transition: border-color .1s; }
+
+.cq-qfield { font-size: 16px; font-weight: 600; padding: 12px 16px; min-height: 48px; line-height: 24px; }
+
+.cq-qfield::placeholder { color: var(--content-placeholder); font-weight: 600; }
+
+.cq-descfield { font-size: 14px; font-weight: 400; padding: 8px 12px; min-height: 38px; line-height: 20px; }
+
+.cq-descfield::placeholder { color: var(--content-placeholder); }
+
+.cq-qfield:hover, .cq-descfield:hover { border-color: var(--border-action-hover); }
+
+.cq-qfield:focus, .cq-descfield:focus { border-color: var(--border-brand); }
+
+.cq-qfield.is-error, .cq-descfield.is-error { border-color: var(--border-negative); }
+
+.cq-field .tf-err { margin-top: 2px; }
+
+
+.cq-scale { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: var(--spacing-base) 0; }
+
+.cq-scale-row { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; }
+
+.cq-scale-end { font-size: 14px; font-weight: 500; color: var(--content-secondary); white-space: nowrap; }
+
+.cq-dots { display: flex; align-items: center; gap: 12px; }
+
+/* Each dot is wrapped by Tooltip's .tt-demo span — keep it out of the layout. */
+.cq-dots .tt-demo { display: flex; flex: none; }
+
+.cq-dot { width: 26px; height: 26px; border-radius: var(--radius-full); border: 3px solid var(--dot, var(--border-base)); background: transparent; flex: none; cursor: help; }
+
+.cq-dot:focus-visible { outline: 2px solid var(--border-brand); outline-offset: 2px; }
+
+.cq-idk { font-size: 14px; color: var(--content-secondary); }
+
+
+/* ---- question-type tile ---- */
+/* Required-question marker (Figma 6191:21502): a static grey tile with an
+   asterisk, shown instead of the checkbox (dialog) / as an extra tile (builder). */
+.req-mark { flex: none; display: grid; place-items: center; border-radius: var(--radius-sm);
+  background: var(--bg-tertiary); border: 1px solid var(--border-white); color: var(--content-secondary); }
+
+.req-mark i { display: flex; }
+
+.qtile { width: 24px; height: 24px; border-radius: var(--radius-sm); display: grid; place-items: center; flex: none;
+  border: 1px solid var(--bg-base); }
+
+.qtile i { display: flex; width: 16px; height: 16px; }
+
+.dialog.dialog-worksurface .dialog-body { flex: 1; min-height: 0; overflow: auto; }
+
+/* Two-line tooltip: bold title on its own line, status beneath. */
+.tooltip .tt-title { display: block; font-weight: 600; margin-bottom: 1px; }
+
+/* Floating tooltip (portal + fixed): escapes overflow-clipping ancestors. JS
+   sets left/top at the trigger edge; the transform pins the correct corner so
+   the bubble + its arrow line up exactly like the CSS-anchored version. */
+.tooltip-float { position: fixed; z-index: 3000; width: max-content; max-width: 240px; pointer-events: none;
+  opacity: 0; animation: tt-float-in var(--motion-fast) var(--ease-out) forwards; }
+
+.tooltip-float.is-above { transform: translate(-50%, -100%); }
+
+.tooltip-float.is-below { transform: translate(-50%, 0); }
+
+.tooltip-float.is-left  { transform: translate(-100%, -50%); }
+
+.tooltip-float.is-right { transform: translate(0, -50%); }
+@media (prefers-reduced-motion: reduce) {
+ .tooltip-float { animation: none; opacity: 1; }
+}
+
+/* The DS close button is absolutely positioned; hand that position to the
+   tooltip wrapper so the bubble anchors correctly and the button sits inside. */
+.dialog-close-tt { position: absolute; top: 15px; right: 15px; z-index: 2; }
+
+.dialog-close-tt .dialog-close { position: static; }
+
+.spacer { flex: 1; }
+
+
+/* Custom question dialog: answer options editor */
+.cq-opts { display: flex; flex-direction: column; gap: var(--spacing-tight); }
+
+.cq-opt { display: flex; align-items: center; gap: var(--spacing-tight); }
+
+.cq-opt-input { flex: 1; font-family: inherit; font-size: 14px; padding: 8px 12px;
+  border: 1px solid var(--border-action); border-radius: var(--radius-base); outline: none;
+  color: var(--content-base); background: var(--bg-base); }
+
+.cq-opt-input:focus { border-color: var(--border-brand); }
+
+.cq-opt-input.is-error { border-color: var(--border-negative); }
+
+.cq-add-opt { align-self: flex-start; }
+
+.infotag { display: inline-flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: var(--radius-base);
+  font-size: 12px; font-weight: 600; background: var(--bg-accent-turquoise-subtle); color: var(--content-secondary); }
+
+.infotag .qtile { width: 16px !important; height: 16px !important; background: transparent !important; }
+
+.infotag .qtile svg { width: 12px; height: 12px; }
+
+.infotag.is-standard { color: var(--content-accent-turquoise); }
+
+.infotag.is-custom { background: var(--bg-accent-blue-subtle); color: var(--content-accent-blue); }
+
+/* "Show translations" reveal (Figma 6304:27970): right-aligned in the selects
+   row, bottom-aligned with the inputs beside it (the fields carry labels). */
+.cq-tr-toggle { margin-left: auto; align-self: flex-end; flex: none; }
+
+.bmq-type-disabled .qtile { opacity: .6; }
+
+/* Tags + card travel as one group. margin:auto centers the group while there
+   is room and degrades to a normal scroll when there isn't — no fixed spacers,
+   so the preview never shows a scrollbar unless content truly overflows. */
+.bmq-inner { margin: auto; width: 100%; display: flex; flex-direction: column; align-items: center; }
+
+
+/* In the dialog header the tags share one 28px size so the row reads as one
+   set next to the title. */
+.dialog-header .bmq-kind :is(.infotag, .tag) {
+  height: 28px; padding: 0 10px; display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; line-height: 1; border-radius: var(--radius-base); }
+
+/* Kind tags pinned to the dialog's very corner (design-canvas edit, 26 Aug):
+   they mirror the close button's 15px inset on the other side, and the dialog
+   gets extra top padding so the title clears them. Question dialogs only. */
+.dialog.has-corner-tags { padding-top: 64px; }
+
+.dialog.has-corner-tags .dialog-header .bmq-kind { position: absolute; top: 16px; left: 16px; }
+
+/* The total rides in a grey circle; --bg-secondary is too faint against the
+   button's transparent fill, so the pill uses the stronger neutral. */
+.aql-selectall .tag-count { pointer-events: none; background: var(--bg-tertiary);
+  color: var(--content-secondary); height: 20px; min-width: 20px; padding: 0 6px; }
+
+
+/* Questionnaire overview actions (top of the page) */
+
+/* What kind of question this is — the title only carries its text. */
+.bmq-kind { display: flex; align-items: center; gap: var(--spacing-tight); flex-wrap: wrap; }
+
+.infotag.is-alt { background: var(--bg-tertiary); color: var(--content-secondary); }
+
+
+/* ---- Similar-question check (create custom question) ----------------------
+   An inline panel right under the previewed card — it exists only while there
+   are matches, so creating never carries an empty side panel. */
+.cq-suggest.is-inline { width: 100%; margin-top: 12px; padding: var(--spacing-base-tight);
+  display: flex; flex-direction: column; gap: 8px;
+  background: var(--bg-base); border: 1px solid var(--border-base); border-radius: var(--radius-lg);
+  box-shadow: 0 4px 6px rgba(25,39,67,.08); }
+
+.cq-suggest-head { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600;
+  color: var(--content-secondary); }
+
+.cq-suggest-item { display: grid; grid-template-columns: 1fr auto; column-gap: var(--spacing-base-tight);
+  row-gap: 6px; align-items: center; padding: var(--spacing-base-tight);
+  border: 1px solid var(--border-base); border-radius: var(--radius-md); background: var(--bg-base); }
+
+.cq-suggest-text { grid-column: 1; font-size: 13.5px; font-weight: 500; line-height: 1.5; color: var(--content-base); }
+
+.cq-suggest-tags { grid-column: 1; display: flex; flex-wrap: wrap; gap: 6px; }
+
+.cq-suggest-tags .infotag { padding: 3px 8px; font-size: 11.5px; height: auto; border: none; box-shadow: none; }
+
+.cq-suggest-use, .cq-suggest-in { grid-column: 2; grid-row: 1 / 3; }
+
+.cq-suggest-in { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500;
+  color: var(--content-positive-secondary); }
+
+
+/* ---- Custom answer marks (multiple = checkbox, single = radio) -------------
+   Interactive in the preview only: clicking shows the pick behavior without
+   touching anything real. */
+.cq-mark { flex: none; width: 18px; height: 18px; padding: 0; display: grid; place-items: center;
+  border: 1.5px solid var(--border-action); background: var(--bg-base); cursor: pointer;
+  transition: background var(--motion-fast) var(--ease-standard), border-color var(--motion-fast) var(--ease-standard); }
+
+.cq-mark.is-check { border-radius: 4px; color: var(--content-on-brand-base); }
+
+.cq-mark.is-check.is-on { background: var(--bg-brand); border-color: var(--border-brand); }
+
+.cq-mark.is-radio { border-radius: 50%; }
+
+.cq-mark.is-radio.is-on { border-color: var(--border-brand); }
+
+.cq-mark.is-radio.is-on::after { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--bg-brand); }
+
+.cq-mark:hover { border-color: var(--border-brand); }
+
+
+/* The check step: one full-dialog screen that loads, then either offers the
+   choice between your wording and what already exists, or confirms nothing
+   similar was found. */
+.cq-step { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column;
+  gap: var(--spacing-base); padding: var(--spacing-loose) var(--spacing-extra-loose) var(--spacing-extra-loose);
+  background: var(--bg-base); border-radius: var(--radius-xl); }
+
+.cq-step-center { flex: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 10px; text-align: center; }
+
+.cq-step-ok { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--bg-positive-subtle); color: var(--content-positive-secondary); }
+
+/* The check pops in once, so "it worked" is read from the movement before the
+   words are read at all. */
+.cq-step-ok.is-pop { width: 64px; height: 64px; animation: cq-pop 420ms cubic-bezier(.2,1.4,.4,1) both; }
+
+.cq-step-ok.is-pop > svg:not(.cq-step-ring) { animation: cq-pop-in 260ms ease-out 180ms both; }
+
+@keyframes cq-pop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+@keyframes cq-pop-in { from { transform: scale(.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.cq-step-btns { display: flex; align-items: center; gap: var(--spacing-tight); padding-top: 10px; }
+
+/* The auto-close as a ring around the check: no second element to read. */
+.cq-step-ok { position: relative; }
+
+.cq-step-ring { position: absolute; inset: -7px; width: auto; height: auto;
+  transform: rotate(-90deg); overflow: visible; }
+
+.cq-step-ring circle { fill: none; stroke-width: 5; stroke-linecap: round; }
+
+.cq-ring-track { stroke: var(--bg-positive-subtle); }
+
+.cq-ring-run { stroke: var(--content-positive-secondary);
+  stroke-dasharray: 289; stroke-dashoffset: 0; animation: cq-ring linear both; }
+
+@keyframes cq-ring { from { stroke-dashoffset: 0; } to { stroke-dashoffset: 289; } }
+@media (prefers-reduced-motion: reduce) {
+
+  .cq-step-ok.is-pop, .cq-step-ok.is-pop > svg:not(.cq-step-ring), .cq-ring-run { animation: none; }
+}
+
+.cq-step-head { display: flex; flex-direction: column; gap: 4px; }
+
+.cq-step-title { margin: 0; font-size: 18px; font-weight: 600; line-height: 1.5; color: var(--content-base); }
+
+.cq-step-sub { margin: 0; font-size: 14px; line-height: 1.6; color: var(--content-secondary); max-width: 620px; }
+
+/* On the similar-questions step the description explains a trade-off, so it
+   runs the width of the step instead of a centred measure. */
+.cq-step-sub.is-wide { max-width: none; }
+
+.cq-step-topic { max-width: 340px; }
+
+.cq-step-opts { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column;
+  gap: var(--spacing-loose); padding-top: 4px; }
+
+/* Named groups: your question, then what already exists. */
+.cq-opt-sec { display: flex; flex-direction: column; gap: var(--spacing-tight); }
+
+.cq-opt-sechead { margin: 0; display: flex; align-items: center; gap: var(--spacing-tight);
+  font-size: 16px; font-weight: 600; line-height: 24px; color: var(--content-base); }
+
+/* One option = a radio card laid out like a question row anywhere else in the
+   product: control left, wording, then the tags that say what picking it costs
+   or buys, and the answer type. The card styling stays, because exactly one of
+   these is added. */
+.cq-opt-card { display: flex; align-items: center; gap: var(--spacing-base-tight); width: 100%;
+  padding: var(--spacing-base-tight) var(--spacing-base); border: 1px solid var(--border-base);
+  border-radius: var(--radius-md); background: var(--bg-base); font-family: inherit; text-align: left;
+  cursor: pointer; transition: border-color var(--motion-fast) var(--ease-standard), background var(--motion-fast) var(--ease-standard); }
+
+.cq-opt-card:hover { background: var(--bg-base-hover); }
+
+.cq-opt-card.is-on { border-color: var(--border-brand); background: var(--bg-brand-subtle); }
+
+.cq-opt-mark { flex: none; width: 18px; height: 18px; border-radius: 50%;
+  border: 1.5px solid var(--border-action); background: var(--bg-base); display: grid; place-items: center; }
+
+.cq-opt-card.is-on .cq-opt-mark { border-color: var(--border-brand); }
+
+.cq-opt-card.is-on .cq-opt-mark::after { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--bg-brand); }
+
+.cq-opt-text { flex: 1; min-width: 0; font-size: 15px; font-weight: 500; line-height: 22.4px; color: var(--content-base); }
+
+.cq-opt-tags { flex: none; display: flex; align-items: center; gap: 6px; }
+
+.cq-opt-tags .infotag { padding: 3px 8px; font-size: 11.5px; }
+
+.cq-step-foot { display: flex; align-items: center; gap: var(--spacing-tight); }
+
+/* ── QL adaptations (emoji flags instead of the CYOS flag assets) ── */
+.cq-flag { font-size: 14px; line-height: 1; }
+/* the CYOS Icon component sized every icon inline; give data-icons a 16px default here */
+.cq-dialog i[data-icon] { display: flex; width: 16px; height: 16px; flex: none; }
+.cq-step-ok > i[data-icon] { width: 32px; height: 32px; }
+.cq-mark.is-check.is-on::after { content: "✓"; font-size: 11px; font-weight: 700; line-height: 1; }
+
+/* ── Benchmarked-question pieces from CYOS phase 2 (PreviewSelect, locked fields,
+   disabled answer type, language note) ── */
+
+
+/* ---- Benchmarked question + topic dialogs (Figma 6271:7232, 6271:9052) --- */
+.bmq-dialog { width: 1080px; max-width: 94vw; height: min(860px, 90vh); display: flex; flex-direction: column; }
+
+.bmq-selects { display: flex; gap: var(--spacing-base); flex: none; }
+
+.bmq-field { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+
+.bmq-lbl { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--content-base); }
+
+.bmq-top-sel { width: 100%; }
+
+.bmq-type-disabled { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px;
+  border: 1px solid var(--border-action); border-radius: var(--radius-md); background: var(--bg-disabled);
+  color: var(--content-disabled); font-size: 14px; cursor: not-allowed; }
+
+
+.bmq-stage { flex: 1; min-height: 0; display: flex; border: 1px solid var(--border-base); border-radius: 12px; overflow: hidden; }
+
+.bmq-preview { flex: 1; min-width: 0; background: var(--bg-secondary); display: flex; flex-direction: column;
+  align-items: center; justify-content: center; padding: 40px; overflow-y: auto; }
+
+.bmq-card { background: var(--bg-base); border: 1px solid var(--border-base); border-radius: var(--radius-xl);
+  box-shadow: 0 4px 6px rgba(25,39,67,.08); padding: 24px; width: 100%; max-width: 694px;
+  display: flex; flex-direction: column; gap: 16px; align-items: center; }
+
+
+/* Selects living inside the respondent preview: look like the content, open
+   the approved-alternatives dropdown. */
+.bmq-sel-wrap { position: relative; width: 100%; }
+
+.bmq-sel { display: flex; width: 100%; align-items: center; gap: 8px; padding: 8px 12px; cursor: pointer;
+  background: var(--bg-base); border: 1px solid var(--border-action); border-radius: var(--radius-md);
+  font-family: inherit; font-size: 14px; color: var(--content-base); box-shadow: var(--sh-action); }
+
+.bmq-sel:hover:not(.is-disabled) { border-color: var(--border-action-hover); }
+
+.bmq-sel.is-open { border-color: var(--border-brand); }
+
+.bmq-sel.is-disabled { cursor: default; }
+
+.bmq-sel > i { color: var(--content-secondary); flex: none; }
+
+.bmq-sel-text { flex: 1; min-width: 0; text-align: center; line-height: 1.6; }
+
+.bmq-sel-text.is-placeholder { color: var(--content-placeholder); }
+
+.bmq-sel-wrap.is-big .bmq-sel { padding: 12px; }
+
+.bmq-sel-wrap.is-big .bmq-sel-text { font-size: 16px; font-weight: 600; line-height: 24px; }
+
+/* Portalled to <body> (the preview scroller and the dialog both clip
+   overflow); position + width come measured from the trigger, inline. */
+.bmq-dropdown { position: fixed; z-index: 1201; padding: 8px;
+  background: var(--bg-base); border: 1px solid var(--border-base); border-radius: var(--radius-base);
+  box-shadow: var(--sh-popovers); display: flex; flex-direction: column; gap: 1px; max-height: 320px; overflow-y: auto; }
+
+.bmq-dd-explain { padding: 12px; font-size: 12px; line-height: 19.2px; color: var(--content-secondary); text-align: left; }
+
+.bmq-dd-explain-title { font-weight: 600; }
+
+.bmq-dd-opt { display: flex; align-items: center; gap: 8px; padding: 12px; border-radius: var(--radius-base); cursor: pointer; }
+
+.bmq-dd-opt:hover { background: var(--bg-base-hover); }
+
+.bmq-dd-opt.is-selected { background: var(--bg-brand-subtle); }
+
+.bmq-dd-opt-text { flex: 1; min-width: 0; font-size: 16px; font-weight: 600; line-height: 24px;
+  color: var(--content-base); text-align: left; }
+
+.bmq-dd-opt.is-muted .bmq-dd-opt-text { font-size: 14px; font-weight: 400; color: var(--content-secondary); }
+
+.bmq-dd-opt > i { color: var(--content-brand); flex: none; }
+
+
+.bmq-scale { padding: 24px 24px 0; display: flex; flex-direction: column; gap: 16px; align-items: center; width: 100%; }
+
+.bmq-scale-row { display: flex; align-items: center; gap: 4px; justify-content: center; flex-wrap: wrap; }
+
+.bmq-scale-end { font-size: 14px; line-height: 1.6; color: var(--content-base); width: 148px; text-align: center; }
+
+.bmq-dot { width: 28px; height: 28px; border-radius: 50%; flex: none; margin: 6px;
+  border: 5px solid var(--dot); background: var(--bg-base); box-shadow: 0 1px 2px rgba(25,39,67,.12);
+  cursor: default; transition: transform var(--motion-fast) var(--ease-standard), box-shadow var(--motion-fast) var(--ease-standard); }
+
+.bmq-dot:hover, .bmq-dot:focus-visible { transform: scale(1.12); box-shadow: 0 2px 6px rgba(25,39,67,.18); outline: none; }
+
+.bmq-idk { font-size: 14px; color: var(--content-base); }
+
+
+/* Language list (right rail) */
+.bmq-langs { width: 240px; flex: none; background: var(--bg-base);
+  padding: 16px; display: flex; flex-direction: column; gap: 1px; overflow-y: auto; }
+
+.bmq-langs-head { font-size: 14px; font-weight: 600; color: var(--content-base); padding: 4px 8px 16px; }
+
+.bmq-lang { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px; border: none;
+  border-radius: var(--radius-md); background: none; cursor: pointer; font-family: inherit; text-align: left; }
+
+.bmq-lang:hover { background: var(--bg-base-hover); }
+
+.bmq-lang.is-selected { background: var(--bg-brand-subtle-selected); }
+
+.bmq-lang-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.bmq-lang-text b { font-size: 14px; font-weight: 600; line-height: 22.4px; color: var(--content-base); }
+
+.bmq-lang-text span { font-size: 12px; line-height: 19.2px; color: var(--content-secondary); }
+
+/* The one language marker: this translation was edited by hand. Informative
+   blue, never a warning — an automatic translation is the normal state. */
+.bmq-lang-manual { display: flex; flex: none; color: var(--content-info); }
+
+.bmq-lang-note { font-size: 12px; line-height: 1.55; color: var(--content-subtle); padding: 12px 8px 4px; }
+
+/* Under the compact language select the note has the card below it, so it
+   loses the side list's padding. */
+.bmq-lang-note.is-inline { padding: 6px 2px 0; }
+
+
+/* Participant-style topic preview: full-bleed themed intro screen */
+.bmq-preview.is-participant { padding: 0; align-items: stretch; }
+
+
+
+/* Wording dropdown footer: the way out of the approved list. */
+.bmq-dd-foot { border-top: 1px solid var(--border-base); margin-top: 4px; padding-top: 4px; }
+
+.bmq-dd-detach { display: flex; align-items: flex-start; gap: 8px; width: 100%; padding: 10px 12px;
+  border: none; border-radius: var(--radius-base); background: transparent; cursor: pointer;
+  font-family: inherit; text-align: left; color: var(--content-base); }
+
+.bmq-dd-detach:hover { background: var(--bg-base-hover); }
+
+.bmq-dd-detach > i { display: flex; flex: none; margin-top: 2px; color: var(--content-secondary); }
+
+.bmq-dd-detach b { display: block; font-size: 14px; font-weight: 600; }
+
+.bmq-dd-detach span span { display: block; margin-top: 2px; font-size: 12px; line-height: 1.5;
+  color: var(--content-secondary); }
+
+
+/* Locked (derived) text in a translation view: the same shape as the select it
+   replaces, without implying it can be changed there. */
+.bmq-locked { width: 100%; padding: 8px 12px; font-size: 14px; line-height: 1.6; text-align: center;
+  color: var(--content-base); }
+
+.bmq-locked.is-big { font-size: 16px; font-weight: 600; line-height: 24px; }
+
+
+/* Free-text description (the escape hatch from the approved list) */
+.bmq-descfree { width: 100%; display: flex; flex-direction: column; gap: 6px; align-items: center; }
+
+.bmq-descfield { width: 100%; font-family: inherit; font-size: 14px; line-height: 1.6; padding: 8px 12px;
+  text-align: center; color: var(--content-base); background: var(--bg-base);
+  border: 1px solid var(--border-brand); border-radius: var(--radius-md); outline: none; resize: vertical; }
+
+.bmq-descfield::placeholder { color: var(--content-placeholder); }
+
+.bmq-descfree-back { border: none; background: none; padding: 0; cursor: pointer; font-family: inherit;
+  font-size: 12px; font-weight: 500; color: var(--content-secondary); text-decoration: underline; }
+
+.bmq-descfree-back:hover { color: var(--content-base); }
+
+
+/* Answer categories / open answer in the preview */
+.bmq-opts { width: 100%; display: flex; flex-direction: column; gap: 8px; padding-top: 8px; }
+
+.bmq-opt { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--content-base); }
+
+.bmq-opt-radio { width: 18px; height: 18px; border-radius: 50%; flex: none;
+  border: 1.5px solid var(--border-action); background: var(--bg-base); }
+
+.bmq-textbox { width: 100%; min-height: 72px; margin-top: 8px; padding: 10px 12px; border-radius: var(--radius-md);
+  border: 1px solid var(--border-base); background: var(--bg-secondary); color: var(--content-placeholder);
+  font-size: 14px; }
+
+/* the langs sidebar mounts through a wrapper; contents keeps it a real flex child
+   of .cq-frame so it stretches full height exactly like phase 2 */
+.cq-langs-mount { display: contents; }
+/* the wording dropdown is portalled to <body>, outside .cq-dialog's icon sizing */
+.bmq-dropdown i[data-icon] { width: 16px; height: 16px; display: flex; flex: none; }
+.bmq-dropdown .bmq-dd-detach > i[data-icon] { width: 14px; height: 14px; }
+/* the question dialog matches the page's wide container (1200) and scales down */
+.cq-dialog { width: min(1200px, calc(100vw - 48px)); }
+/* the question dialog is 1080 wide; the overlay's own gutter shrinks so the
+   width is actually reachable on smaller screens too */
+.overlay:has(> .cq-dialog) { padding: 24px 16px; }
+.dialog.dialog-worksurface.cq-dialog { width: min(1080px, calc(100vw - 32px)); }

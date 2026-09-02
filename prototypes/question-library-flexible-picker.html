@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Add questions - Engagement survey Q4 - My Effectory</title>
+  <base href="../" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="foundation.css" />
+  <link rel="stylesheet" href="components.css" />
+  <link rel="stylesheet" href="prototypes/question-library-toolbar.css" />
+  <script src="prototypes/question-library-shared.js"></script>
+  <style>
+    /* the survey creator's picker: what the published library looks like downstream */
+    .app-main-inner { max-width: calc(960px + 2 * var(--page-x)); }
+    .pick-row .btn { flex: none; }
+    .pick-row .tag { flex: none; }
+    #pickList .q-row[data-added] { background: var(--bg-secondary); }
+  </style>
+</head>
+<body data-page="picker" data-variant="flexible">
+<script src="prototypes/question-library-toolbar.js"></script>
+
+<div class="app">
+  <main class="app-main" style="width: 100%;">
+
+    <!-- survey-creation context: this is a layer inside a survey, not the library -->
+    <nav class="breadcrumb" aria-label="Back">
+      <button class="btn btn-secondary" id="btnBack"><i data-icon="arrow-left"></i> Back to survey</button>
+      <ol class="bc-trail">
+        <li><span class="bc-current" aria-current="page">Engagement survey Q4 2026 — Add questions</span></li>
+      </ol>
+    </nav>
+
+    <div class="app-main-inner">
+
+      <div class="ph">
+        <div class="ph-row">
+          <div class="ph-left">
+            <h1 class="ph-title">Add questions</h1>
+            <div class="ph-meta">From your organisation’s question library</div>
+          </div>
+        </div>
+        <div class="ph-divider"></div>
+      </div>
+
+      <div class="ql-toolbar">
+        <div class="search-wrap" style="margin-left: 0; width: 320px;">
+          <span class="search-icon"><i data-icon="search"></i></span>
+          <input type="search" class="srch" id="pkSearch" placeholder="Search all questions" aria-label="Search all questions" />
+        </div>
+      </div>
+
+      <div id="pickList"></div>
+      <p class="text-medium" id="noResults" hidden style="color: var(--content-secondary); margin: 0;">No questions match your search.</p>
+
+    </div>
+  </main>
+</div>
+
+<script src="icons.js"></script>
+<script>
+(function () {
+  "use strict";
+  /* Version A downstream: ONE merged bucket — the coordinator's curation is the
+     menu. Custom questions sit inside the topics they were placed in. */
+  var topics = QL.TOPICS.map(function (t) {
+    return { name: t.name, qs: t.qs.map(function (q) { return { text: q[0], type: q[1], custom: false }; }) };
+  });
+  QL.customQuestions().forEach(function (c) {
+    if (c.avail === false) return;
+    var t = topics.filter(function (t) { return t.name === c.topic; })[0];
+    if (t) t.qs.push({ text: c.text, type: c.type, custom: true });
+  });
+  var added = {};
+  var term = "";
+  var list = document.getElementById("pickList");
+  var noResults = document.getElementById("noResults");
+
+  function render() {
+    var html = topics.map(function (topic) {
+      var rows = topic.qs.map(function (q) {
+        if (!QL.matches(q.text, term)) return "";
+        var key = QL.fill(q.text);
+        return '<div class="q-row pick-row"' + (added[key] ? " data-added" : "") + '>' +
+          '<div class="text-medium text-w500 q-text" style="flex:1;">' + QL.hl(q.text, term) + "</div>" +
+          (q.custom ? '<span class="tag tag-highlight">Custom</span>' : '<span class="tag is-standard">Benchmarked</span>') +
+          QL.scaleChip(q.type) +
+          (added[key]
+            ? '<button class="btn btn-secondary is-disabled" disabled>Added</button>'
+            : '<button class="btn btn-secondary" data-add="' + QL.esc(key) + '">Add</button>') +
+          "</div>";
+      }).join("");
+      if (!rows) return "";
+      return '<div class="q-topic"><div class="q-head"><h2 class="text-l5">' + QL.esc(topic.name) + "</h2>" +
+        '<span class="q-count">' + topic.qs.length + "</span></div>" +
+        '<div class="q-list">' + rows + "</div></div>";
+    }).join("");
+    list.innerHTML = html;
+    noResults.hidden = !!html.trim();
+    list.querySelectorAll("[data-add]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        added[b.getAttribute("data-add")] = true;
+        QL.notify("Added to your survey");
+        render();
+      });
+    });
+    if (window.Icons) window.Icons.render();
+  }
+
+  document.getElementById("pkSearch").addEventListener("input", function (e) { term = e.target.value.trim(); render(); });
+  document.getElementById("btnBack").addEventListener("click", function () {
+    QL.notify("This is where your survey would be", "The survey builder itself isn’t part of this prototype.");
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

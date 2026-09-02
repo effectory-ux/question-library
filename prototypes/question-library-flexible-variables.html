@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Question library - Variables - My Effectory</title>
+  <base href="../" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="foundation.css" />
+  <link rel="stylesheet" href="components.css" />
+  <link rel="stylesheet" href="prototypes/question-library-toolbar.css" />
+  <script src="prototypes/question-library-shared.js"></script>
+  <style>
+    /* Variables — two labeled columns + a trailing action; no Table component exists
+       in the design system yet, so this composes the list-row pattern with tokens. */
+    .var-card { padding: 0; }
+    .var-grid-head, .var-grid-row { display: grid; grid-template-columns: 1fr 160px 48px; align-items: center; gap: var(--spacing-base); padding: var(--spacing-base-tight) var(--spacing-loose); }
+    .var-grid-head { border-bottom: 1px solid var(--border-base); color: var(--content-subtle); }
+    .var-grid-row { border-bottom: 1px solid var(--border-base); color: var(--content-base); min-height: 56px; }
+    .var-grid-row:last-child { border-bottom: none; }
+    .var-grid-row .ib { justify-self: end; }
+  </style>
+</head>
+<body data-page="variables">
+<script src="prototypes/question-library-toolbar.js"></script>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <div class="mainnav">
+    <div class="mn-portal">
+      <span class="mn-logo"></span>
+      <button class="mn-portal-btn"><b>Coordinator</b> <i data-icon="chevron-down" class="mn-chev"></i></button>
+    </div>
+    <nav class="mn-nav" aria-label="Main">
+      <a class="mn-item"><i data-icon="home"></i> Home</a>
+      <a class="mn-item"><i data-icon="clipboard"></i> Surveys <i data-icon="chevron-down" class="mn-chev"></i></a>
+      <a class="mn-item is-active" aria-current="page"><i data-icon="book-open"></i> Question library</a>
+      <a class="mn-item"><i data-icon="refresh"></i> 360&deg; Feedback</a>
+      <a class="mn-item"><i data-icon="structure"></i> Organization <i data-icon="chevron-down" class="mn-chev"></i></a>
+    </nav>
+    <div class="mn-foot">
+      <a class="mn-item"><i data-icon="help"></i> Help &amp; learn</a>
+      <div class="mn-foot-divider"></div>
+      <div class="mn-user">
+        <div class="av av-36 av-blue">JR</div>
+        <div class="mn-meta">
+          <div class="mn-name">Jamal van Rooijen</div>
+          <div class="mn-org">Effectory B.V.</div>
+        </div>
+        <i data-icon="chevron-up"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <main class="app-main">
+
+
+    <div class="app-main-inner">
+
+      <!-- Page header -->
+      <div class="ph">
+        <div class="ph-row">
+          <div class="ph-left">
+            <div class="ph-title-row">
+              <h1 class="ph-title">Question library</h1>
+              <span class="tag tag-info">Beta</span>
+            </div>
+            <div class="ph-meta">Manage the questions you can ask in your surveys</div>
+          </div>
+          <div class="ph-controls">
+            <button class="btn btn-primary" id="btnPublish"><i data-icon="send"></i> Publish</button>
+          </div>
+        </div>
+        <div class="ph-tabs">
+          <a class="ph-tab" href="prototypes/question-library-flexible-questions.html">Questions</a>
+          <a class="ph-tab" href="prototypes/question-library-flexible-templates.html">Templates</a>
+          <a class="ph-tab" href="prototypes/question-library-flexible-themes.html">Themes</a>
+          <a class="ph-tab is-active" aria-current="page" href="prototypes/question-library-flexible-variables.html">Variables</a>
+        </div>
+        <div class="ph-divider"></div>
+      </div>
+
+
+      <!-- Toolbar -->
+      <div class="ql-toolbar">
+        <div class="slt-wrap ql-lang">
+          <div class="slt-lbl">Library languages <i data-icon="info" data-tt="The languages this project's question library is available in"></i></div>
+          <div class="slt" tabindex="0" role="button" aria-haspopup="listbox">
+            <span class="slt-left"><span class="slt-val"></span></span>
+            <i data-icon="chevron-down"></i>
+          </div>
+        </div>
+        <span style="flex: 1;"></span>
+        <!-- static in this prototype: creating variables isn't part of the test tasks -->
+        <button class="btn btn-secondary" id="btnCreateVariable"><i data-icon="plus"></i> Create variable</button>
+      </div>
+
+      <!-- Variables -->
+      <div class="card card-outlined var-card">
+        <div class="var-grid-head text-l6"><span>Variable</span><span>Occurrences</span><span></span></div>
+        <div class="var-grid-row text-medium">
+          <span>manager</span><span>1</span>
+          <button class="ib ib-24 ib-tertiary" data-var="manager" aria-label="View questions with this variable" data-tt="View questions with this variable"><i data-icon="eye"></i></button>
+        </div>
+        <div class="var-grid-row text-medium">
+          <span id="orgName"></span><span id="orgCount"></span>
+          <button class="ib ib-24 ib-tertiary" data-var="org" aria-label="View questions with this variable" data-tt="View questions with this variable"><i data-icon="eye"></i></button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script src="icons.js"></script>
+<script>
+(function () {
+  "use strict";
+  document.getElementById("orgName").textContent = QL.ORG;
+  document.getElementById("orgCount").textContent = QL.orgQuestions.length;
+  document.querySelectorAll("[data-var]").forEach(function (b) {
+    b.addEventListener("click", function () { QL.variableDialog(b.getAttribute("data-var")); });
+  });
+})();
+</script>
+</body>
+</html>

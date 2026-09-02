@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Question library - My Effectory</title>
+  <base href="../" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="foundation.css" />
+  <link rel="stylesheet" href="components.css" />
+  <link rel="stylesheet" href="prototypes/question-library-cq.css" />
+  <link rel="stylesheet" href="prototypes/question-library-toolbar.css" />
+  <script src="prototypes/question-library-shared.js"></script>
+  <script src="prototypes/question-library-cq.js"></script>
+  <style>
+    /* one governed list: benchmarked rows open variant selection, custom rows
+       open the full editor */
+    #questionList .q-row { cursor: pointer; }
+    #questionList .q-row:hover { background: var(--bg-base-hover); }
+    .q-variants { flex: none; font-size: 12px; color: var(--content-secondary); white-space: nowrap; }
+    .q-head .ib { flex-shrink: 0; }
+    .q-row .ib { flex-shrink: 0; }
+    .menu-item.is-disabled { opacity: .45; cursor: default; }
+    .menu-item.is-disabled:hover { background: transparent; }
+  </style>
+</head>
+<body data-page="all-questions">
+<script src="prototypes/question-library-toolbar.js"></script>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <div class="mainnav">
+    <div class="mn-portal">
+      <span class="mn-logo"></span>
+      <button class="mn-portal-btn"><b>Coordinator</b> <i data-icon="chevron-down" class="mn-chev"></i></button>
+    </div>
+    <nav class="mn-nav" aria-label="Main">
+      <a class="mn-item"><i data-icon="home"></i> Home</a>
+      <a class="mn-item"><i data-icon="clipboard"></i> Surveys <i data-icon="chevron-down" class="mn-chev"></i></a>
+      <a class="mn-item is-active" aria-current="page"><i data-icon="book-open"></i> Question library</a>
+      <a class="mn-item"><i data-icon="refresh"></i> 360&deg; Feedback</a>
+      <a class="mn-item"><i data-icon="structure"></i> Organization <i data-icon="chevron-down" class="mn-chev"></i></a>
+    </nav>
+    <div class="mn-foot">
+      <a class="mn-item"><i data-icon="help"></i> Help &amp; learn</a>
+      <div class="mn-foot-divider"></div>
+      <div class="mn-user">
+        <div class="av av-36 av-blue">JR</div>
+        <div class="mn-meta">
+          <div class="mn-name">Jamal van Rooijen</div>
+          <div class="mn-org">Effectory B.V.</div>
+        </div>
+        <i data-icon="chevron-up"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <main class="app-main">
+
+
+    <div class="app-main-inner">
+
+      <!-- Page header -->
+      <div class="ph">
+        <div class="ph-row">
+          <div class="ph-left">
+            <div class="ph-title-row">
+              <h1 class="ph-title">Question library</h1>
+              <span class="tag tag-info">Beta</span>
+            </div>
+            <div class="ph-meta">Explore the questions you can ask in your surveys</div>
+          </div>
+          <div class="ph-controls">
+            <button class="btn btn-primary" id="btnPublish"><i data-icon="send"></i> Publish</button>
+          </div>
+        </div>
+        <div class="ph-tabs">
+          <a class="ph-tab is-active" aria-current="page" href="prototypes/question-library-questions.html">Questions</a>
+          <a class="ph-tab" id="tabInbox" href="prototypes/question-library-custom.html">Created in surveys</a>
+          <a class="ph-tab" href="prototypes/question-library-templates.html">Templates</a>
+          <a class="ph-tab" href="prototypes/question-library-themes.html">Themes</a>
+          <a class="ph-tab" href="prototypes/question-library-variables.html">Variables</a>
+        </div>
+        <div class="ph-divider"></div>
+      </div>
+
+
+      <!-- Toolbar: search fills the left, language + Add sit on the right -->
+      <div class="ql-toolbar">
+        <div class="search-wrap" style="margin-left: 0; flex: 1; width: auto;">
+          <span class="search-icon"><i data-icon="search"></i></span>
+          <input type="search" class="srch" id="qlSearch" placeholder="Search for specific questions" aria-label="Search for specific questions" />
+        </div>
+        <div class="slt-wrap ql-lang">
+          <div class="slt" tabindex="0" role="button" aria-haspopup="listbox" aria-label="Library languages" data-tt="The languages this project's question library is available in">
+            <span class="slt-left"><span class="slt-val"></span></span>
+            <i data-icon="chevron-down"></i>
+          </div>
+        </div>
+        <button class="btn btn-secondary" id="btnAdd" aria-haspopup="menu"><i data-icon="plus"></i> Add <i data-icon="chevron-down"></i></button>
+      </div>
+
+      <!-- All questions, grouped per topic -->
+      <div id="questionList"></div>
+      <p class="text-medium" id="noResults" hidden style="color: var(--content-secondary); margin: 0;">No questions match your search.</p>
+
+    </div>
+  </main>
+</div>
+
+<script src="icons.js"></script>
+<script>
+(function () {
+  "use strict";
+  var list = document.getElementById("questionList");
+  var noResults = document.getElementById("noResults");
+  var searchEl = document.getElementById("qlSearch");
+  var term = "";
+
+  /* one governed library: Effectory's benchmarked structure is fixed — its
+     topics can't be renamed and its questions can't move. The organisation's
+     custom questions live in the same list, freely editable and movable, and
+     custom topics can be added. */
+  var topics = QL.TOPICS.map(function (t) {
+    return { name: t.name, custom: false, qs: t.qs.map(function (q) { return { text: q[0], type: q[1], custom: false }; }) };
+  });
+  QL.libraryCustom().forEach(function (c) {
+    var t = topics.filter(function (t) { return t.name === c.topic; })[0];
+    if (!t) { t = { name: c.topic, custom: true, qs: [] }; topics.push(t); }
+    t.qs.push({ text: c.text, type: c.type, custom: true, variants: c.variants || [] });
+  });
+  function short(t) { t = QL.fill(t); return t.length > 48 ? t.slice(0, 45) + "…" : t; }
+  function topicNames() { return topics.map(function (t) { return t.name; }); }
+
+  function render() {
+    var html = topics.map(function (topic, ti) {
+      var shownCount = 0;
+      var rows = topic.qs.map(function (q, qi) {
+        if (!QL.matches(q.text, term)) return "";
+        shownCount++;
+        var vChip = q.custom && q.variants && q.variants.length
+          ? '<span class="q-variants" data-tt="' + QL.esc(q.variants.join(" • ")) + '">' + q.variants.length + " variants</span>"
+          : "";
+        return '<div class="q-row" data-t="' + ti + '" data-q="' + qi + '">' +
+          '<div class="text-medium text-w500 q-text" style="flex:1;">' + QL.hl(q.text, term) + "</div>" +
+          vChip +
+          (q.custom ? '<span class="tag tag-highlight">Custom</span>' : '<span class="tag is-standard">Benchmarked</span>') +
+          QL.scaleChip(q.type) +
+          '<button class="ib ib-24 ib-tertiary" data-menu aria-label="More options" data-tt="More options"><i data-icon="more-vertical"></i></button>' +
+          "</div>";
+      }).join("");
+      if (!rows) {
+        if (term) return "";
+        rows = '<div class="q-row" data-empty><span class="text-medium q-text" style="color: var(--content-secondary); cursor: default;">No questions in this topic yet</span></div>';
+      }
+      return '<div class="q-topic">' +
+        '<div class="q-head"><h2 class="text-l5">' + QL.esc(topic.name) + "</h2>" +
+        '<span class="q-count">' + shownCount + "</span>" +
+        (topic.custom ? '<button class="ib ib-24 ib-tertiary" data-rename="' + ti + '" aria-label="Rename topic" data-tt="Rename topic"><i data-icon="edit"></i></button>' : "") +
+        "</div>" +
+        '<div class="q-list">' + rows + "</div></div>";
+    }).join("");
+    list.innerHTML = html;
+    noResults.hidden = !!html.trim();
+
+    /* custom topics can be renamed; the benchmarked structure can't */
+    list.querySelectorAll("[data-rename]").forEach(function (b) {
+      var topic = topics[+b.getAttribute("data-rename")];
+      b.addEventListener("click", function (e) {
+        e.stopPropagation();
+        QL.renameDialog(topic.name, "topic", function (v) {
+          topic.name = v;
+          render();
+        });
+      });
+    });
+
+    list.querySelectorAll(".q-row").forEach(function (row) {
+      if (!row.hasAttribute("data-q")) return; /* empty-topic placeholder row */
+      var topic = topics[+row.getAttribute("data-t")];
+      var qi = +row.getAttribute("data-q");
+      var q = topic.qs[qi];
+      /* clicking the question opens its settings; the kebab holds the rest */
+      row.addEventListener("click", function (e) {
+        if (e.target.closest("[data-menu]")) return;
+        openSettings(topic, q);
+      });
+      row.querySelector("[data-menu]").addEventListener("click", function (e) {
+        e.stopPropagation();
+        rowMenu(e.currentTarget, topic, qi, q);
+      });
+    });
+    if (window.Icons) window.Icons.render();
+  }
+
+  /* ── the question's settings dialog ── */
+  function openSettings(topic, q) {
+    if (q.custom) {
+      /* custom content is the organisation's own: fully editable, movable */
+      QLQ.openEdit(
+        { text: q.text, type: q.type, topic: topic.name, usedIn: [] },
+        {
+          standard: false, topics: topicNames(), pool: [],
+          onSave: function (u) {
+            q.text = u.text; q.type = u.type;
+            if (u.topic && u.topic !== topic.name) {
+              moveToTopic(topic, q, u.topic, true);
+            } else {
+              QL.trackChange("Edited “" + short(q.text) + "”");
+            }
+            render();
+          },
+          onDelete: function () {
+            topic.qs.splice(topic.qs.indexOf(q), 1);
+            QL.trackChange("Deleted “" + short(q.text) + "”");
+            render();
+          },
+          onAdd: addQuestion
+        }
+      );
+    } else {
+      /* benchmarked content is fixed: variant selection only */
+      QLQ.openEdit(
+        { text: q.text, type: q.type, topic: topic.name, usedIn: QL.USAGE },
+        {
+          standard: true, topics: [topic.name], pool: [],
+          onSave: function (u) {
+            q.text = u.text;
+            QL.trackChange("Selected alternative wording for “" + short(q.text) + "”");
+            render();
+          },
+          /* rewriting freely creates a custom question in the same library */
+          onAdd: function (nq) { return addQuestion(nq, topic); }
+        }
+      );
+    }
+  }
+
+  function moveToTopic(from, q, destName, silent) {
+    var dest = topics.filter(function (t) { return t.name === destName; })[0];
+    if (!dest || dest === from) return;
+    from.qs.splice(from.qs.indexOf(q), 1);
+    dest.qs.push(q);
+    QL.trackChange("Moved “" + short(q.text) + "” to " + destName);
+    if (!silent) QL.notify("Question moved to " + destName, "Publish your changes to make it live in surveys.");
+  }
+
+  /* ── the row kebab: settings for every question; custom questions can also
+     be reordered (no drag and drop) and moved to another topic ── */
+  var rowMenus = [];
+  function closeRowMenus() {
+    rowMenus.forEach(function (m) { m.remove(); });
+    rowMenus = [];
+    document.removeEventListener("mousedown", onDocDown);
+  }
+  function onDocDown(e) { if (!e.target.closest(".menu")) closeRowMenus(); }
+  function menuAt(itemsHTML, left, top) {
+    var m = document.createElement("div");
+    m.className = "menu";
+    m.setAttribute("role", "menu");
+    m.style.position = "fixed";
+    m.style.zIndex = 1000 + rowMenus.length;
+    m.innerHTML = itemsHTML;
+    document.body.appendChild(m);
+    m.style.left = Math.max(8, Math.min(left, innerWidth - m.offsetWidth - 8)) + "px";
+    m.style.top = Math.max(8, Math.min(top, innerHeight - m.offsetHeight - 8)) + "px";
+    rowMenus.push(m);
+    if (window.Icons) window.Icons.render();
+    return m;
+  }
+  function item(action, label, opts) {
+    opts = opts || {};
+    return '<div class="menu-item' + (opts.disabled ? " is-disabled" : "") + '" role="menuitem"' +
+      (opts.disabled ? ' aria-disabled="true"' : "") + ' data-act="' + action + '">' +
+      '<span class="menu-item-body"><span class="menu-item-title">' + QL.esc(label) + "</span></span>" +
+      (opts.sub ? '<i data-icon="chevron-right" class="menu-item-check"></i>' : "") +
+      "</div>";
+  }
+  function rowMenu(btn, topic, qi, q) {
+    if (rowMenus.length) return closeRowMenus();
+    var canUp = q.custom && qi > 0 && topic.qs[qi - 1].custom;
+    var canDown = q.custom && qi < topic.qs.length - 1;
+    var html = item("settings", "Settings") +
+      (q.custom
+        ? item("up", "Move up", { disabled: !canUp }) +
+          item("down", "Move down", { disabled: !canDown }) +
+          item("topic", "Move to topic", { sub: true })
+        : "");
+    var r = btn.getBoundingClientRect();
+    var menu = menuAt(html, r.right - 200, r.bottom + 4);
+    menu.style.minWidth = "200px";
+    setTimeout(function () { document.addEventListener("mousedown", onDocDown); }, 0);
+    menu.addEventListener("click", function (e) {
+      var it = e.target.closest(".menu-item");
+      if (!it || it.classList.contains("is-disabled")) return;
+      var act = it.getAttribute("data-act");
+      if (act === "settings") { closeRowMenus(); openSettings(topic, q); }
+      else if (act === "up") {
+        closeRowMenus();
+        topic.qs.splice(qi, 1); topic.qs.splice(qi - 1, 0, q);
+        QL.trackChange("Reordered in " + topic.name);
+        render();
+      } else if (act === "down") {
+        closeRowMenus();
+        topic.qs.splice(qi, 1); topic.qs.splice(qi + 1, 0, q);
+        QL.trackChange("Reordered in " + topic.name);
+        render();
+      } else if (act === "topic") {
+        /* nested menu: pick the destination topic */
+        if (rowMenus.length > 1) { rowMenus.pop().remove(); return; }
+        var ir = it.getBoundingClientRect();
+        var sub = menuAt(
+          topics.map(function (t, i) {
+            return '<div class="menu-item' + (t === topic ? " is-selected" : "") + '" role="menuitemradio" aria-checked="' + (t === topic) + '" data-topic="' + i + '">' +
+              '<span class="menu-item-body"><span class="menu-item-title">' + QL.esc(t.name) + "</span></span>" +
+              (t === topic ? '<i data-icon="check" class="menu-item-check"></i>' : "") +
+              "</div>";
+          }).join(""),
+          ir.right + 4, ir.top
+        );
+        sub.style.maxHeight = "320px";
+        sub.style.overflowY = "auto";
+        sub.addEventListener("click", function (ev) {
+          var ti = ev.target.closest("[data-topic]");
+          if (!ti) return;
+          var dest = topics[+ti.getAttribute("data-topic")];
+          closeRowMenus();
+          if (dest === topic) return;
+          moveToTopic(topic, q, dest.name);
+          render();
+        });
+      }
+    });
+  }
+
+  function addQuestion(nq, intoTopic) {
+    var t = intoTopic
+      || topics.filter(function (x) { return x.name === nq.topic; })[0]
+      || topics[topics.length - 1];
+    var obj = { text: nq.text, type: nq.type, custom: true, variants: [] };
+    t.qs.push(obj);
+    QL.libAdd({ text: nq.text, type: nq.type, topic: t.name, added: "Today", usedIn: [] });
+    QL.trackChange("Added “" + short(nq.text) + "” to " + t.name);
+    render();
+    return obj;
+  }
+  function addQuestionDialog() {
+    QLQ.openCreate({
+      topics: topicNames(), defaultTopic: topics[0].name, pool: [],
+      onAdd: function (nq) { return addQuestion(nq); }
+    });
+  }
+
+  /* ── add a custom topic ── */
+  function addTopicDialog() {
+    var overlay = QL.openOverlay(
+      '<div class="overlay"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="at-title">' +
+      '<button class="dialog-close" aria-label="Close" data-close><i data-icon="cross"></i></button>' +
+      '<div class="dialog-header is-sm"><div class="dialog-header-top"><h3 class="dialog-title" id="at-title">Add a topic</h3></div>' +
+      '<p class="dialog-subtitle">Topics organise the questions in your library.</p></div>' +
+      '<div class="dialog-body"><div class="tf-wrap"><label class="tf-lbl">Name</label>' +
+      '<div class="tf-field"><input class="tf" id="atName" type="text" placeholder="For example: Hybrid working" /></div></div></div>' +
+      '<div class="dialog-footer"><button class="btn btn-secondary" data-close>Cancel</button>' +
+      '<button class="btn btn-primary" id="atAdd">Add topic</button></div>' +
+      "</div></div>"
+    );
+    overlay.querySelector("#atName").focus();
+    overlay.querySelector("#atAdd").addEventListener("click", function () {
+      var name = overlay.querySelector("#atName").value.trim();
+      if (!name) return;
+      topics.push({ name: name, custom: true, qs: [] });
+      QL.closeOverlay(overlay);
+      QL.trackChange("Added topic “" + name + "”");
+      QL.notify("Topic added", "Publish your changes to make it live in surveys.");
+      render();
+    });
+  }
+
+  var btnAdd = document.getElementById("btnAdd");
+  btnAdd.addEventListener("click", function () {
+    QL.pickMenu(btnAdd, ["Add question", "Add topic"], -1, function (i) {
+      if (i === 0) addQuestionDialog(); else addTopicDialog();
+    });
+  });
+
+  searchEl.addEventListener("input", function () {
+    term = searchEl.value.trim();
+    render();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

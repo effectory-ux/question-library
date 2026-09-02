@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Question library - Templates - My Effectory</title>
+  <base href="../" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="foundation.css" />
+  <link rel="stylesheet" href="components.css" />
+  <link rel="stylesheet" href="prototypes/question-library-toolbar.css" />
+  <script src="prototypes/question-library-shared.js"></script>
+  <style>
+    /* Templates list (Figma: Templates tab) — rows in one outlined card */
+    .tpl-card { padding: 0; }
+    .tpl-row { display: flex; align-items: center; gap: var(--spacing-base); width: 100%; padding: var(--spacing-base) var(--spacing-loose); border: none; background: none; font: inherit; text-align: left; cursor: pointer; border-bottom: 1px solid var(--border-base); }
+    .tpl-row:last-child { border-bottom: none; }
+    .tpl-row:hover { background: var(--bg-base-hover); }
+    .tpl-img { flex: none; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; }
+    .tpl-img img { width: 56px; height: 56px; }
+    .tpl-img.is-doc { border-radius: var(--radius-full); background: var(--bg-secondary); color: var(--content-secondary); }
+    .tpl-img.is-doc i { width: 24px; height: 24px; display: flex; }
+    .tpl-name { flex: 1; min-width: 0; }
+    .tpl-name .text-l5 { display: block; margin: 0; color: var(--content-base); }
+    .tpl-kind { display: block; }
+    .tpl-kind { margin-top: var(--spacing-extra-tight); font-size: 12px; color: var(--content-secondary); }
+    .tpl-count { flex: none; font-size: 14px; color: var(--content-secondary); }
+    .tpl-row .tag { flex: none; }
+    .tpl-row .ib { flex: none; }
+  </style>
+</head>
+<body data-page="templates" data-variant="flexible">
+<script src="prototypes/question-library-toolbar.js"></script>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <div class="mainnav">
+    <div class="mn-portal">
+      <span class="mn-logo"></span>
+      <button class="mn-portal-btn"><b>Coordinator</b> <i data-icon="chevron-down" class="mn-chev"></i></button>
+    </div>
+    <nav class="mn-nav" aria-label="Main">
+      <a class="mn-item"><i data-icon="home"></i> Home</a>
+      <a class="mn-item"><i data-icon="clipboard"></i> Surveys <i data-icon="chevron-down" class="mn-chev"></i></a>
+      <a class="mn-item is-active" aria-current="page"><i data-icon="book-open"></i> Question library</a>
+      <a class="mn-item"><i data-icon="refresh"></i> 360&deg; Feedback</a>
+      <a class="mn-item"><i data-icon="structure"></i> Organization <i data-icon="chevron-down" class="mn-chev"></i></a>
+    </nav>
+    <div class="mn-foot">
+      <a class="mn-item"><i data-icon="help"></i> Help &amp; learn</a>
+      <div class="mn-foot-divider"></div>
+      <div class="mn-user">
+        <div class="av av-36 av-blue">JR</div>
+        <div class="mn-meta">
+          <div class="mn-name">Jamal van Rooijen</div>
+          <div class="mn-org">Effectory B.V.</div>
+        </div>
+        <i data-icon="chevron-up"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <main class="app-main">
+
+
+    <div class="app-main-inner">
+
+      <!-- Page header -->
+      <div class="ph">
+        <div class="ph-row">
+          <div class="ph-left">
+            <div class="ph-title-row">
+              <h1 class="ph-title">Question library</h1>
+              <span class="tag tag-info">Beta</span>
+            </div>
+            <div class="ph-meta">Manage the questions you can ask in your surveys</div>
+          </div>
+          <div class="ph-controls">
+            <button class="btn btn-primary" id="btnPublish"><i data-icon="send"></i> Publish</button>
+          </div>
+        </div>
+        <div class="ph-tabs">
+          <a class="ph-tab" href="prototypes/question-library-flexible-questions.html">Questions</a>
+          <a class="ph-tab is-active" aria-current="page" href="prototypes/question-library-flexible-templates.html">Templates</a>
+          <a class="ph-tab" href="prototypes/question-library-flexible-themes.html">Themes</a>
+          <a class="ph-tab" href="prototypes/question-library-flexible-variables.html">Variables</a>
+        </div>
+        <div class="ph-divider"></div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="ql-toolbar">
+        <div class="search-wrap" style="margin-left: 0; width: 320px;">
+          <span class="search-icon"><i data-icon="search"></i></span>
+          <input type="search" class="srch" id="tplSearch" placeholder="Search" aria-label="Search templates" />
+        </div>
+        <span style="flex: 1;"></span>
+        <button class="btn btn-secondary" id="btnCreateTemplate"><i data-icon="plus"></i> Create template</button>
+      </div>
+
+      <!-- Templates -->
+      <div class="card card-outlined tpl-card" id="tplList"></div>
+      <p class="text-medium" id="noResults" hidden style="color: var(--content-secondary); margin: 0;">No templates match your search.</p>
+
+    </div>
+  </main>
+</div>
+
+<script src="icons.js"></script>
+<script>
+(function () {
+  "use strict";
+  var listEl = document.getElementById("tplList");
+  var noResults = document.getElementById("noResults");
+  var searchEl = document.getElementById("tplSearch");
+  var term = "";
+  var DETAIL = "prototypes/question-library-flexible-template.html";
+
+  function rowHTML(t) {
+    var count = QL.templateCount(t);
+    return '<div class="tpl-row" role="link" tabindex="0" data-slug="' + QL.esc(t.slug) + '">' +
+      (t.img
+        ? '<span class="tpl-img"><img src="assets/illustrations/templates/' + t.img + '.svg" alt="" /></span>'
+        : '<span class="tpl-img is-doc"><i data-icon="clipboard-note"></i></span>') +
+      '<span class="tpl-name"><span class="text-l5">' + QL.esc(t.name) + '</span><span class="tpl-kind">' + (t.custom ? "Custom template" : "Standard template") + "</span></span>" +
+      '<span class="tpl-count">' + count + (count === 1 ? " question" : " questions") + "</span>" +
+      (t.status === "published" ? '<span class="tag tag-positive">Published</span>' : '<span class="tag is-draft">Unpublished</span>') +
+      '<button class="ib ib-24 ib-tertiary" data-kebab aria-label="More options" data-tt="More options"><i data-icon="more-vertical"></i></button>' +
+      "</div>";
+  }
+
+  function render() {
+    var shown = QL.allTemplates().filter(function (t) {
+      return !term || t.name.toLowerCase().indexOf(term.toLowerCase()) !== -1;
+    });
+    listEl.innerHTML = shown.map(rowHTML).join("");
+    listEl.hidden = !shown.length;
+    noResults.hidden = !!shown.length;
+    listEl.querySelectorAll(".tpl-row").forEach(function (row) {
+      var slug = row.getAttribute("data-slug");
+      row.addEventListener("click", function (e) {
+        if (e.target.closest("[data-kebab]")) return;
+        location.href = DETAIL + "?t=" + encodeURIComponent(slug);
+      });
+      row.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") location.href = DETAIL + "?t=" + encodeURIComponent(slug);
+      });
+      row.querySelector("[data-kebab]").addEventListener("click", function (e) {
+        e.stopPropagation();
+        QL.pickMenu(e.currentTarget, ["Duplicate template"], -1, function () { duplicate(slug); });
+      });
+    });
+    if (window.Icons) window.Icons.render();
+  }
+
+  function duplicate(slug) {
+    var t = QL.getTemplate(slug);
+    var copy = {
+      slug: t.slug + "-copy-" + Date.now().toString(36),
+      name: "Copy of " + t.name,
+      img: t.img, desc: t.desc,
+      /* the copy owns its questions: sections are resolved to inline lists */
+      sections: QL.templateSections(t).map(function (s) {
+        return { name: s.name, qs: s.qs.map(function (q) { return [q.text, q.type, q.custom]; }) };
+      })
+    };
+    QL.addCustomTemplate(copy);
+    QL.notify("Template duplicated", "The copy is unpublished until you publish it.");
+    render();
+  }
+
+  document.getElementById("btnCreateTemplate").addEventListener("click", function () {
+    var overlay = QL.openOverlay(
+      '<div class="overlay"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="ct-title">' +
+      '<button class="dialog-close" aria-label="Close" data-close><i data-icon="cross"></i></button>' +
+      '<div class="dialog-header is-sm"><div class="dialog-header-top"><h3 class="dialog-title" id="ct-title">Create a template</h3></div>' +
+      '<p class="dialog-subtitle">Bundle questions into a reusable template for your surveys.</p></div>' +
+      '<div class="dialog-body"><div class="tf-wrap"><label class="tf-lbl">Name</label>' +
+      '<div class="tf-field"><input class="tf" id="ctName" type="text" placeholder="For example: Quarterly pulse" /></div></div></div>' +
+      '<div class="dialog-footer"><button class="btn btn-secondary" data-close>Cancel</button>' +
+      '<button class="btn btn-primary" id="ctCreate">Create template</button></div>' +
+      "</div></div>"
+    );
+    overlay.querySelector("#ctName").focus();
+    overlay.querySelector("#ctCreate").addEventListener("click", function () {
+      var name = overlay.querySelector("#ctName").value.trim();
+      if (!name) return;
+      var slug = "custom-" + Date.now().toString(36);
+      QL.addCustomTemplate({ slug: slug, name: name, img: null, desc: "", sections: [] });
+      location.href = DETAIL + "?t=" + slug;
+    });
+  });
+
+  searchEl.addEventListener("input", function () { term = searchEl.value.trim(); render(); });
+
+  render();
+})();
+</script>
+</body>
+</html>
