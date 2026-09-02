@@ -1121,9 +1121,9 @@ window.QL = (function () {
     });
     initLang();
     initPublish();
-    /* the Created in surveys tab carries its count on every page of the Fixed version */
+    /* the To review tab carries its count on every page of the Fixed version */
     var inboxTab = document.getElementById("tabInbox");
-    if (inboxTab) inboxTab.textContent = "Created in surveys (" + inboxQuestions().length + ")";
+    if (inboxTab) inboxTab.textContent = "To review (" + inboxQuestions().length + ")";
   }
   document.addEventListener("DOMContentLoaded", initShell);
 

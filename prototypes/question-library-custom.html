@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Question library - Created in surveys - My Effectory</title>
+  <title>Question library - To review - My Effectory</title>
   <base href="../" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -83,22 +83,12 @@
         </div>
         <div class="ph-tabs">
           <a class="ph-tab" href="prototypes/question-library-questions.html">Questions</a>
-          <a class="ph-tab is-active" aria-current="page" id="tabInbox" href="prototypes/question-library-custom.html">Created in surveys</a>
+          <a class="ph-tab is-active" aria-current="page" id="tabInbox" href="prototypes/question-library-custom.html">To review</a>
           <a class="ph-tab" href="prototypes/question-library-templates.html">Templates</a>
           <a class="ph-tab" href="prototypes/question-library-themes.html">Themes</a>
           <a class="ph-tab" href="prototypes/question-library-variables.html">Variables</a>
         </div>
         <div class="ph-divider"></div>
-      </div>
-
-      <p class="text-medium ib-intro">Custom questions created in surveys across your organisation. Only their creators can use them until you add them to the library.</p>
-
-      <!-- Toolbar -->
-      <div class="ql-toolbar">
-        <div class="search-wrap" style="margin-left: 0; width: 320px;">
-          <span class="search-icon"><i data-icon="search"></i></span>
-          <input type="search" class="srch" id="ibSearch" placeholder="Search these questions" aria-label="Search these questions" />
-        </div>
       </div>
 
       <!-- Similar-question suggestions: a banner that opens the step-through review -->
@@ -114,12 +104,18 @@
         </div>
       </div>
 
+      <p class="text-medium ib-intro">Custom questions created in surveys across your organisation. Only their creators can use them until you add them to the library.</p>
+
+      <!-- Search, directly above the questions -->
+      <div class="ql-toolbar">
+        <div class="search-wrap" style="margin-left: 0; flex: 1; width: auto;">
+          <span class="search-icon"><i data-icon="search"></i></span>
+          <input type="search" class="srch" id="ibSearch" placeholder="Search these questions" aria-label="Search these questions" />
+        </div>
+      </div>
+
       <!-- The incoming list -->
       <div class="q-topic">
-        <div class="q-head">
-          <h2 class="text-l5">All questions</h2>
-          <span class="q-count" id="ibCount"></span>
-        </div>
         <div class="q-list" id="inboxList"></div>
         <p class="text-medium" id="noResults" hidden style="color: var(--content-secondary); margin: var(--spacing-base-tight) 0 0;">No questions match your search.</p>
         <p class="text-medium" id="emptyInbox" hidden style="color: var(--content-secondary); margin: var(--spacing-base-tight) 0 0;">No new questions from surveys. Questions people create in their surveys show up here.</p>
@@ -172,7 +168,6 @@
     }
 
     var shown = items.filter(function (q) { return QL.matches(q.text, term); });
-    document.getElementById("ibCount").textContent = items.length;
     listEl.innerHTML = shown.map(function (q) {
       var i = items.indexOf(q);
       return '<div class="q-row ib-row">' +
@@ -195,7 +190,7 @@
   function topicRow(defaultTopic) {
     var wrap = document.createElement("div");
     wrap.className = "slt-wrap cmb-topic";
-    wrap.innerHTML = '<div class="slt-lbl">Topic</div>' +
+    wrap.innerHTML = '<div class="slt-lbl">Add to topic</div>' +
       '<div class="slt" tabindex="0" role="button" aria-haspopup="listbox">' +
       '<span class="slt-left"><span class="slt-val">' + QL.esc(defaultTopic) + "</span></span>" +
       '<i data-icon="chevron-down"></i></div>';
@@ -214,7 +209,7 @@
     QL.inboxRemove(texts);
     items = items.filter(function (q) { return texts.indexOf(q.text) === -1; });
     var tab = document.getElementById("tabInbox");
-    if (tab) tab.textContent = "Created in surveys (" + items.length + ")";
+    if (tab) tab.textContent = "To review (" + items.length + ")";
   }
 
   /* ── review a question and add it to the library: the question settings
@@ -238,6 +233,35 @@
 
   /* ── the suggestion stepper: one group at a time, Figma-component-update
      style — pick a resolution, move to the next, until everything is done ── */
+  var REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function confettiAt(el, wrapEl) {
+    var r = el.getBoundingClientRect();
+    var colors = [
+      "var(--bg-distribution-strongly-agree)", "var(--bg-distribution-agree)",
+      "var(--bg-distribution-neither)", "var(--bg-brand)", "var(--bg-distribution-disagree)"
+    ];
+    var box = document.createElement("div");
+    box.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:2000;";
+    wrapEl.appendChild(box);
+    var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    for (var i = 0; i < 20; i++) {
+      var p = document.createElement("span");
+      var sz = 5 + Math.random() * 5;
+      p.style.cssText = "position:fixed;width:" + sz + "px;height:" + (sz * 0.6) + "px;left:" + cx + "px;top:" + cy +
+        "px;background:" + colors[i % colors.length] + ";border-radius:1px;opacity:1;transform:translate(-50%,-50%);" +
+        "transition:transform .8s cubic-bezier(.15,.5,.3,1), opacity .8s ease-in;";
+      box.appendChild(p);
+    }
+    requestAnimationFrame(function () { requestAnimationFrame(function () {
+      Array.prototype.slice.call(box.children).forEach(function (p) {
+        var ang = Math.random() * Math.PI * 2, dist = 60 + Math.random() * 130;
+        var dx = Math.cos(ang) * dist, dy = Math.sin(ang) * dist - 30 + Math.random() * 100;
+        p.style.transform = "translate(" + dx + "px," + dy + "px) rotate(" + (Math.random() * 540 - 270) + "deg)";
+        p.style.opacity = "0";
+      });
+    }); });
+    setTimeout(function () { box.remove(); }, 900);
+  }
   function suggestDialog() {
     var groups = findClusters();
     if (!groups.length) return;
@@ -245,9 +269,11 @@
     var overlay = QL.openOverlay(
       '<div class="overlay"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="sg-title" style="width: min(640px, calc(100vw - 32px));">' +
       '<button class="dialog-close" aria-label="Close" data-close><i data-icon="cross"></i></button>' +
-      '<div class="dialog-header"><div class="dialog-header-top"><h3 class="dialog-title" id="sg-title">These questions look similar</h3></div>' +
+      '<div class="dialog-header is-sm"><div class="dialog-header-top"><h3 class="dialog-title" id="sg-title">These questions look similar</h3></div>' +
       '<p class="dialog-subtitle">Choose the main wording. The other wordings become variants of the same library question. Results stay with the wording they were collected under.</p></div>' +
-      '<div class="dialog-body"><div id="sgOpts" role="radiogroup" aria-label="Main wording"></div><div id="sgTopic"></div></div>' +
+      '<div class="dialog-body">' +
+      '<div class="slt-lbl">Select default</div>' +
+      '<div id="sgOpts" role="radiogroup" aria-label="Select default"></div><div id="sgTopic"></div></div>' +
       '<div class="dialog-footer">' +
       '<span class="text-medium" id="sgCount" style="margin-right: auto; color: var(--content-secondary);"></span>' +
       '<button class="btn btn-secondary" id="sgKeep">Keep separate</button>' +
@@ -256,23 +282,48 @@
     );
     var opts = overlay.querySelector("#sgOpts");
     var topicMount = overlay.querySelector("#sgTopic");
-    var pick = 0, topic = null;
+    var btnKeep = overlay.querySelector("#sgKeep");
+    var btnGo = overlay.querySelector("#sgGo");
+    var pick = 0, topic = null, busy = false;
 
-    function renderStep() {
+    function renderOpts() {
       var group = groups[idx];
-      pick = 0; /* default: the most-used wording (groups are usage-sorted) */
-      overlay.querySelector("#sgCount").textContent = "Suggestion " + (idx + 1) + " of " + groups.length;
-      function renderOpts() {
-        opts.innerHTML = group.map(function (q, i) {
-          return '<button type="button" class="cmb-opt' + (i === pick ? " is-on" : "") + '" role="radio" aria-checked="' + (i === pick) + '" data-p="' + i + '">' +
-            '<span class="rb-wrap"><input type="radio" class="rb" name="cmb" ' + (i === pick ? "checked" : "") + ' tabindex="-1" /></span>' +
-            '<span class="text-medium text-w500">' + QL.esc(q.text) +
-            '<span class="cmb-opt-meta text-w400">' + uses(q) + " · " + QL.esc(q.by) + "</span></span></button>";
-        }).join("");
-        opts.querySelectorAll("[data-p]").forEach(function (b) {
-          b.addEventListener("click", function () { pick = +b.getAttribute("data-p"); renderOpts(); });
+      opts.innerHTML = group.map(function (q, i) {
+        return '<div class="cmb-opt' + (i === pick ? " is-on" : "") + '" role="radio" aria-checked="' + (i === pick) + '" tabindex="0" data-p="' + i + '">' +
+          '<span class="rb-wrap"><input type="radio" class="rb" name="cmb" ' + (i === pick ? "checked" : "") + ' tabindex="-1" /></span>' +
+          '<span class="text-medium text-w500" style="flex:1;">' + QL.esc(q.text) +
+          '<span class="cmb-opt-meta text-w400">' + uses(q) + " · " + QL.esc(q.by) + "</span></span>" +
+          '<button class="ib ib-24 ib-tertiary" data-rm="' + i + '" aria-label="Remove from this suggestion" data-tt="Remove from this suggestion"><i data-icon="cross"></i></button>' +
+          "</div>";
+      }).join("");
+      opts.querySelectorAll("[data-p]").forEach(function (b) {
+        b.addEventListener("click", function (e) {
+          if (e.target.closest("[data-rm]")) return;
+          pick = +b.getAttribute("data-p");
+          renderOpts();
         });
-      }
+      });
+      /* a wrong suggestion can be taken out: it stays in the list below,
+         only the grouping is rejected */
+      opts.querySelectorAll("[data-rm]").forEach(function (b) {
+        b.addEventListener("click", function (e) {
+          e.stopPropagation();
+          if (busy) return;
+          var i = +b.getAttribute("data-rm");
+          dismissed[group[i].text] = true;
+          group.splice(i, 1);
+          if (group.length < 2) { next(); return; }
+          if (i === pick) pick = 0; else if (i < pick) pick--;
+          renderOpts();
+        });
+      });
+      if (window.Icons) window.Icons.render();
+    }
+    function renderStep() {
+      pick = 0; /* default: the most-used wording (groups are usage-sorted) */
+      busy = false;
+      btnKeep.disabled = false; btnGo.disabled = false;
+      overlay.querySelector("#sgCount").textContent = "Suggestion " + (idx + 1) + " of " + groups.length;
       renderOpts();
       topicMount.innerHTML = "";
       topic = topicRow(topicNames[0]);
@@ -300,12 +351,52 @@
       }
     }
 
-    overlay.querySelector("#sgKeep").addEventListener("click", function () {
+    /* the wordings converge into the chosen one at the top, with confetti */
+    function animateCombine(done) {
+      if (REDUCED) return done();
+      var rows = Array.prototype.slice.call(opts.querySelectorAll(".cmb-opt"));
+      if (rows.length < 2) return done();
+      var sel = rows[pick];
+      var top = rows[0].offsetTop;
+      rows.forEach(function (r) {
+        r.style.transition = "transform .45s cubic-bezier(.2,.7,.3,1), opacity .45s ease";
+        r.style.pointerEvents = "none";
+        if (r === sel) {
+          r.style.position = "relative"; r.style.zIndex = "2";
+          r.style.transform = "translateY(" + (top - r.offsetTop) + "px)";
+        } else {
+          r.style.transform = "translateY(" + (top - r.offsetTop) + "px) scale(.92)";
+          r.style.opacity = "0";
+        }
+      });
+      setTimeout(function () { confettiAt(sel, overlay); }, 420);
+      setTimeout(done, 1100);
+    }
+    /* and the reverse for keeping them separate: the wordings drift apart */
+    function animateSeparate(done) {
+      if (REDUCED) return done();
+      var rows = Array.prototype.slice.call(opts.querySelectorAll(".cmb-opt"));
+      var mid = (rows.length - 1) / 2;
+      rows.forEach(function (r, i) {
+        r.style.transition = "transform .4s cubic-bezier(.3,.6,.4,1), opacity .4s ease";
+        r.style.pointerEvents = "none";
+        var dir = i === mid ? 0 : (i < mid ? -1 : 1);
+        r.style.transform = "translateY(" + dir * (Math.abs(i - mid) * 28 + 16) + "px)";
+        r.style.opacity = "0";
+      });
+      setTimeout(done, 450);
+    }
+
+    btnKeep.addEventListener("click", function () {
+      if (busy) return;
+      busy = true; btnKeep.disabled = true; btnGo.disabled = true;
       groups[idx].forEach(function (q) { dismissed[q.text] = true; });
       keptGroups++;
-      next();
+      animateSeparate(next);
     });
-    overlay.querySelector("#sgGo").addEventListener("click", function () {
+    btnGo.addEventListener("click", function () {
+      if (busy) return;
+      busy = true; btnKeep.disabled = true; btnGo.disabled = true;
       var group = groups[idx];
       var main = group[pick];
       var variants = group.filter(function (q) { return q !== main; }).map(function (q) { return q.text; });
@@ -313,7 +404,7 @@
       removeFromInbox(group.map(function (q) { return q.text; }));
       QL.trackChange("Combined " + group.length + " questions into “" + short(main.text) + "”");
       combined++;
-      next();
+      animateCombine(next);
     });
 
     renderStep();

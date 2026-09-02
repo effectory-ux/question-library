@@ -111,7 +111,7 @@
           { page: "questions", label: "The question library", desc: "Where the coordinator manages content — the admin side of this version." },
           { page: "picker", label: "Survey creator’s picker", desc: "What a manager sees when adding questions to a survey — the published result of this version." }
         ];
-        if (!isFlex) cases.splice(1, 0, { page: "custom", label: "Created in surveys", desc: "Custom questions created in surveys: spot similar ones, combine them, add them to the library." });
+        if (!isFlex) cases.splice(1, 0, { page: "custom", label: "To review", desc: "Custom questions created in surveys: spot similar ones, combine them, add them to the library." });
         return '<div class="pbar-menu-head">Jump to a screen</div>' +
           cases.map(function (c) {
             return '<button class="pbar-item" data-page="' + c.page + '">' +
