@@ -130,14 +130,14 @@
     } else if (shelf === "org") {
       var rows = org.map(function (q) {
         if (!QL.matches(q.text, term)) return "";
-        return row(q, '<span class="tag tag-highlight">Custom</span>', "Added " + (q.added || "recently"));
+        return row(q, '<span class="tag tag-info">Custom</span>', "Added " + (q.added || "recently"));
       }).join("");
       any = !!rows;
       orgList.innerHTML = rows ? '<div class="q-topic"><div class="q-list">' + rows + "</div></div>" : "";
     } else {
       var rows = mine.map(function (q) {
         if (!QL.matches(q.text, term)) return "";
-        return row(q, '<span class="tag tag-highlight">Custom</span>',
+        return row(q, '<span class="tag tag-info">Custom</span>',
           "Added " + (q.added || "recently") + " · " + (q.avail !== false ? "Available to everyone" : "Only visible to you"));
       }).join("");
       any = !!rows;

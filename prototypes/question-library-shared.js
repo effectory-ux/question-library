@@ -802,6 +802,10 @@ window.QL = (function () {
       if (window.Icons) window.Icons.render();
     });
     document.addEventListener("click", closeMenu);
+    /* the menu is fixed-position: close it when the page scrolls away */
+    document.addEventListener("scroll", function (e) {
+      if (menu && !menu.contains(e.target)) closeMenu();
+    }, true);
     render();
   }
 
@@ -925,8 +929,21 @@ window.QL = (function () {
       menu.remove(); pickOpen = null;
       cb(+item.getAttribute("data-i"));
     });
-    var closeOnDoc = function () { if (pickOpen) { pickOpen.remove(); pickOpen = null; } document.removeEventListener("click", closeOnDoc); };
-    setTimeout(function () { document.addEventListener("click", closeOnDoc); }, 0);
+    var closeOnDoc = function () {
+      if (pickOpen) { pickOpen.remove(); pickOpen = null; }
+      document.removeEventListener("click", closeOnDoc);
+      document.removeEventListener("scroll", closeOnScroll, true);
+    };
+    /* fixed-position menus don't follow their trigger: close when anything
+       scrolls (except the menu's own list) */
+    var closeOnScroll = function (e) {
+      if (pickOpen && pickOpen.contains(e.target)) return;
+      closeOnDoc();
+    };
+    setTimeout(function () {
+      document.addEventListener("click", closeOnDoc);
+      document.addEventListener("scroll", closeOnScroll, true);
+    }, 0);
     pickOpen = menu;
     if (window.Icons) window.Icons.render();
   }

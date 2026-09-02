@@ -86,7 +86,7 @@
         var key = QL.fill(q.text);
         return '<div class="q-row pick-row"' + (added[key] ? " data-added" : "") + '>' +
           '<div class="text-medium text-w500 q-text" style="flex:1;">' + QL.hl(q.text, term) + "</div>" +
-          (q.custom ? '<span class="tag tag-highlight">Custom</span>' : '<span class="tag is-standard">Benchmarked</span>') +
+          (q.custom ? '<span class="tag tag-info">Custom</span>' : '<span class="tag is-standard">Benchmarked</span>') +
           QL.scaleChip(q.type) +
           (added[key]
             ? '<button class="btn btn-secondary is-disabled" disabled>Added</button>'

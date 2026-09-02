@@ -742,7 +742,13 @@ window.QLQ = (function () {
       document.body.appendChild(scrim);
       document.body.appendChild(dd);
       ddOpen = { dd: dd, scrim: scrim };
-      function closeDD() { dd.remove(); scrim.remove(); ddOpen = null; }
+      function closeDD() {
+        dd.remove(); scrim.remove(); ddOpen = null;
+        document.removeEventListener("scroll", onScroll, true);
+      }
+      /* the dropdown is fixed-position: close it when the dialog scrolls away */
+      function onScroll(e) { if (!dd.contains(e.target)) closeDD(); }
+      document.addEventListener("scroll", onScroll, true);
       scrim.addEventListener("mousedown", closeDD);
       dd.querySelectorAll(".bmq-dd-opt").forEach(function (o) {
         o.addEventListener("click", function () {

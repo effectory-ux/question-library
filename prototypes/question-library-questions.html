@@ -95,6 +95,7 @@
           <span class="search-icon"><i data-icon="search"></i></span>
           <input type="search" class="srch" id="qlSearch" placeholder="Search for specific questions" aria-label="Search for specific questions" />
         </div>
+        <button class="btn btn-secondary" id="btnFilter" aria-haspopup="listbox"><i data-icon="filter"></i> <span id="fltVal">All questions</span></button>
         <div class="slt-wrap ql-lang">
           <div class="slt" tabindex="0" role="button" aria-haspopup="listbox" aria-label="Library languages" data-tt="The languages this project's question library is available in">
             <span class="slt-left"><span class="slt-val"></span></span>
@@ -120,6 +121,8 @@
   var noResults = document.getElementById("noResults");
   var searchEl = document.getElementById("qlSearch");
   var term = "";
+  var FILTERS = ["All questions", "Benchmarked questions", "Custom questions"];
+  var filter = 0;
 
   /* one governed library: Effectory's benchmarked structure is fixed — its
      topics can't be renamed and its questions can't move. The organisation's
@@ -141,6 +144,8 @@
       var shownCount = 0;
       var rows = topic.qs.map(function (q, qi) {
         if (!QL.matches(q.text, term)) return "";
+        if (filter === 1 && q.custom) return "";
+        if (filter === 2 && !q.custom) return "";
         shownCount++;
         var vChip = q.custom && q.variants && q.variants.length
           ? '<span class="q-variants" data-tt="' + QL.esc(q.variants.join(" • ")) + '">' + q.variants.length + " variants</span>"
@@ -148,13 +153,13 @@
         return '<div class="q-row" data-t="' + ti + '" data-q="' + qi + '">' +
           '<div class="text-medium text-w500 q-text" style="flex:1;">' + QL.hl(q.text, term) + "</div>" +
           vChip +
-          (q.custom ? '<span class="tag tag-highlight">Custom</span>' : '<span class="tag is-standard">Benchmarked</span>') +
+          (q.custom ? '<span class="tag tag-info">Custom</span>' : '<span class="tag is-standard">Benchmarked</span>') +
           QL.scaleChip(q.type) +
           '<button class="ib ib-24 ib-tertiary" data-menu aria-label="More options" data-tt="More options"><i data-icon="more-vertical"></i></button>' +
           "</div>";
       }).join("");
       if (!rows) {
-        if (term) return "";
+        if (term || filter) return "";
         rows = '<div class="q-row" data-empty><span class="text-medium q-text" style="color: var(--content-secondary); cursor: default;">No questions in this topic yet</span></div>';
       }
       return '<div class="q-topic">' +
@@ -256,8 +261,14 @@
     rowMenus.forEach(function (m) { m.remove(); });
     rowMenus = [];
     document.removeEventListener("mousedown", onDocDown);
+    document.removeEventListener("scroll", onAnyScroll, true);
   }
   function onDocDown(e) { if (!e.target.closest(".menu")) closeRowMenus(); }
+  /* fixed-position menus don't follow their row: close on any outside scroll */
+  function onAnyScroll(e) {
+    if (rowMenus.some(function (m) { return m.contains(e.target); })) return;
+    closeRowMenus();
+  }
   function menuAt(itemsHTML, left, top) {
     var m = document.createElement("div");
     m.className = "menu";
@@ -293,7 +304,10 @@
     var r = btn.getBoundingClientRect();
     var menu = menuAt(html, r.right - 200, r.bottom + 4);
     menu.style.minWidth = "200px";
-    setTimeout(function () { document.addEventListener("mousedown", onDocDown); }, 0);
+    setTimeout(function () {
+      document.addEventListener("mousedown", onDocDown);
+      document.addEventListener("scroll", onAnyScroll, true);
+    }, 0);
     menu.addEventListener("click", function (e) {
       var it = e.target.closest(".menu-item");
       if (!it || it.classList.contains("is-disabled")) return;
@@ -379,6 +393,15 @@
       render();
     });
   }
+
+  var btnFilter = document.getElementById("btnFilter");
+  btnFilter.addEventListener("click", function () {
+    QL.pickMenu(btnFilter, FILTERS, filter, function (i) {
+      filter = i;
+      document.getElementById("fltVal").textContent = FILTERS[i];
+      render();
+    });
+  });
 
   var btnAdd = document.getElementById("btnAdd");
   btnAdd.addEventListener("click", function () {
