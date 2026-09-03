@@ -1252,6 +1252,7 @@ window.QL = (function () {
           /* a skipped transition (hidden tab, another one running) still runs
              the swap — only the animation promise rejects, which is fine */
           var t = document.startViewTransition(swap);
+          t.ready.catch(function () {});
           t.finished.catch(function () {});
           return t.updateCallbackDone;
         }
