@@ -1136,6 +1136,15 @@ window.QL = (function () {
   }
 
   /* ── shared shell bindings (run per page after DOM is ready) ── */
+  /* per-tab-content bindings: run on load and again after the tab router
+     swaps in another tab's content */
+  function initPage() {
+    initLang();
+    updatePublish();
+    /* the To review tab carries its count on every page of the Fixed version */
+    var inboxTab = document.getElementById("tabInbox");
+    if (inboxTab) inboxTab.textContent = "To review (" + inboxQuestions().length + ")";
+  }
   function initShell() {
     var learn = document.getElementById("btnLearnMore");
     if (learn) learn.addEventListener("click", learnDialog);
@@ -1147,13 +1156,124 @@ window.QL = (function () {
       var bar = document.getElementById("promoBar");
       if (bar) bar.remove();
     });
-    initLang();
     initPublish();
-    /* the To review tab carries its count on every page of the Fixed version */
-    var inboxTab = document.getElementById("tabInbox");
-    if (inboxTab) inboxTab.textContent = "To review (" + inboxQuestions().length + ")";
+    initPage();
+    initTabRouter();
   }
   document.addEventListener("DOMContentLoaded", initShell);
+
+  /* ── tab router ──────────────────────────────────────────────────────────
+     Every tab is still its own HTML file (shareable, testable URLs), but
+     switching tabs no longer reloads the page: the target page is fetched,
+     and only the content below the page header is swapped in. Nav, header,
+     Publish and the prototype toolbar stay put; the URL and title follow. */
+  var assets = {};
+  function assetURL(ref) { return new URL(ref, document.baseURI).href; }
+  function noteLoadedAssets() {
+    document.querySelectorAll('link[rel="stylesheet"]').forEach(function (l) { assets[assetURL(l.getAttribute("href"))] = true; });
+    document.querySelectorAll("script[src]").forEach(function (sc) { assets[assetURL(sc.getAttribute("src"))] = true; });
+  }
+  /* stylesheets and scripts the target page needs that this page hasn't loaded */
+  function ensureAssets(doc) {
+    var waits = [];
+    doc.querySelectorAll('head link[rel="stylesheet"]').forEach(function (l) {
+      var k = assetURL(l.getAttribute("href"));
+      if (assets[k]) return;
+      assets[k] = true;
+      var el = document.createElement("link");
+      el.rel = "stylesheet"; el.href = k;
+      waits.push(new Promise(function (r) { el.onload = el.onerror = r; }));
+      document.head.appendChild(el);
+    });
+    var chain = Promise.all(waits);
+    doc.querySelectorAll("head script[src]").forEach(function (sc) {
+      var k = assetURL(sc.getAttribute("src"));
+      if (assets[k]) return;
+      assets[k] = true;
+      chain = chain.then(function () {
+        return new Promise(function (r) {
+          var el = document.createElement("script");
+          el.src = k; el.onload = el.onerror = r;
+          document.head.appendChild(el);
+        });
+      });
+    });
+    return chain;
+  }
+  function loadTab(url, push) {
+    var cur = document.querySelector(".app-main-inner");
+    var curPh = cur && cur.querySelector(".ph");
+    if (!curPh) { location.href = url; return; }
+    return fetch(url, { credentials: "same-origin" }).then(function (r) {
+      if (!r.ok) throw new Error(r.status);
+      return r.text();
+    }).then(function (html) {
+      var doc = new DOMParser().parseFromString(html, "text/html");
+      var inner = doc.querySelector(".app-main-inner");
+      var ph = inner && inner.querySelector(".ph");
+      if (!ph) throw new Error("not a tab page");
+      return ensureAssets(doc).then(function () {
+        var key = url.split("/").pop().split("?")[0];
+        if (!document.querySelector('style[data-tab-style="' + key + '"]')) {
+          doc.querySelectorAll("head style").forEach(function (st) {
+            var el = document.createElement("style");
+            el.setAttribute("data-tab-style", key);
+            el.textContent = st.textContent;
+            document.head.appendChild(el);
+          });
+        }
+        var swap = function () {
+          document.querySelectorAll("body > .menu, .ql-tt").forEach(function (m) { m.remove(); });
+          while (curPh.nextSibling) curPh.nextSibling.remove();
+          var n = ph.nextSibling;
+          while (n) { var nx = n.nextSibling; cur.appendChild(document.adoptNode(n)); n = nx; }
+          var tabs = curPh.querySelector(".ph-tabs"), newTabs = ph.querySelector(".ph-tabs");
+          if (tabs && newTabs) tabs.innerHTML = newTabs.innerHTML;
+          var meta = curPh.querySelector(".ph-meta"), newMeta = ph.querySelector(".ph-meta");
+          if (meta && newMeta) meta.textContent = newMeta.textContent;
+          document.title = doc.title;
+          if (doc.body.getAttribute("data-page")) document.body.setAttribute("data-page", doc.body.getAttribute("data-page"));
+          var old = document.getElementById("page-script");
+          if (old) old.remove();
+          var ps = doc.getElementById("page-script");
+          if (ps) {
+            var el = document.createElement("script");
+            el.id = "page-script";
+            el.textContent = ps.textContent;
+            document.body.appendChild(el);
+          }
+          initPage();
+          if (window.Icons) window.Icons.render();
+          var main = document.querySelector(".app-main");
+          if (main) main.scrollTop = 0;
+          if (push) history.pushState({ tab: true }, "", url);
+        };
+        if (document.startViewTransition && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          /* a skipped transition (hidden tab, another one running) still runs
+             the swap — only the animation promise rejects, which is fine */
+          var t = document.startViewTransition(swap);
+          t.finished.catch(function () {});
+          return t.updateCallbackDone;
+        }
+        swap();
+      });
+    }).catch(function () { location.href = url; });
+  }
+  function initTabRouter() {
+    noteLoadedAssets();
+    document.addEventListener("click", function (e) {
+      var a = e.target.closest ? e.target.closest("a.ph-tab[href]") : null;
+      if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      if (a.origin !== location.origin) return;
+      e.preventDefault();
+      if (a.classList.contains("is-active")) return;
+      loadTab(a.href, true);
+    });
+    window.addEventListener("popstate", function (e) {
+      if (e.state && e.state.tab) loadTab(location.href, false);
+    });
+    if (!history.state) history.replaceState({ tab: true }, "", location.href);
+  }
 
   return {
     ORG: ORG, TYPES: TYPES, TOPICS: TOPICS, THEMES: THEMES,
@@ -1169,6 +1289,7 @@ window.QL = (function () {
     setTplName: setTplName, addCustomTemplate: addCustomTemplate,
     seedOn: seedOn, customQuestions: customQuestions, changesList: changesList,
     libraryCustom: libraryCustom, libAdd: libAdd,
-    inboxQuestions: inboxQuestions, inboxRemove: inboxRemove
+    inboxQuestions: inboxQuestions, inboxRemove: inboxRemove,
+    initPage: initPage, loadTab: loadTab
   };
 })();
