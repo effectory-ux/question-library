@@ -922,23 +922,27 @@ window.QL = (function () {
     if (top + Math.min(menu.offsetHeight, 320) > innerHeight - 8) top = Math.max(8, r.top - menu.offsetHeight - 4);
     menu.style.left = Math.min(r.left, innerWidth - menu.offsetWidth - 8) + "px";
     menu.style.top = top + "px";
+    /* every way out goes through close(), so the document listeners never
+       outlive the menu — a stale click listener here ate the next open */
+    var close = function () {
+      if (pickOpen === menu) pickOpen = null;
+      menu.remove();
+      document.removeEventListener("click", closeOnDoc);
+      document.removeEventListener("scroll", closeOnScroll, true);
+    };
     menu.addEventListener("click", function (e) {
       var item = e.target.closest(".menu-item");
       if (!item) return;
       e.stopPropagation();
-      menu.remove(); pickOpen = null;
+      close();
       cb(+item.getAttribute("data-i"));
     });
-    var closeOnDoc = function () {
-      if (pickOpen) { pickOpen.remove(); pickOpen = null; }
-      document.removeEventListener("click", closeOnDoc);
-      document.removeEventListener("scroll", closeOnScroll, true);
-    };
+    var closeOnDoc = function () { close(); };
     /* fixed-position menus don't follow their trigger: close when anything
        scrolls (except the menu's own list) */
     var closeOnScroll = function (e) {
-      if (pickOpen && pickOpen.contains(e.target)) return;
-      closeOnDoc();
+      if (menu.contains(e.target)) return;
+      close();
     };
     setTimeout(function () {
       document.addEventListener("click", closeOnDoc);
