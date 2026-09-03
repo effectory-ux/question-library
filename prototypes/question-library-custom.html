@@ -187,19 +187,23 @@
   }
 
   /* ── a topic picker row (shared by both dialogs) ── */
-  function topicRow(defaultTopic) {
+  /* topics are optional: without one, the question lands in the library's
+     Custom questions group at the bottom */
+  var NO_TOPIC = "No topic";
+  function topicRow() {
     var wrap = document.createElement("div");
     wrap.className = "slt-wrap cmb-topic";
     wrap.innerHTML = '<div class="slt-lbl">Add to topic</div>' +
       '<div class="slt" tabindex="0" role="button" aria-haspopup="listbox">' +
-      '<span class="slt-left"><span class="slt-val">' + QL.esc(defaultTopic) + "</span></span>" +
+      '<span class="slt-left"><span class="slt-val">' + NO_TOPIC + "</span></span>" +
       '<i data-icon="chevron-down"></i></div>';
-    var val = defaultTopic;
+    var options = [NO_TOPIC].concat(topicNames);
+    var val = "";
     var slt = wrap.querySelector(".slt");
     slt.addEventListener("click", function () {
-      QL.pickMenu(slt, topicNames, topicNames.indexOf(val), function (i) {
-        val = topicNames[i];
-        wrap.querySelector(".slt-val").textContent = val;
+      QL.pickMenu(slt, options, val ? options.indexOf(val) : 0, function (i) {
+        val = i === 0 ? "" : options[i];
+        wrap.querySelector(".slt-val").textContent = options[i];
       });
     });
     return { el: wrap, value: function () { return val; } };
@@ -218,13 +222,15 @@
     QLQ.openReview(
       { text: q.text, type: q.type, topic: "", usedIn: [] },
       {
-        standard: false, topics: topicNames, pool: [],
+        standard: false, topics: topicNames, topicOptional: true, pool: [],
         review: { uses: q.uses || 0, by: q.by },
         onConfirm: function (u) {
-          QL.libAdd({ text: u.text, type: u.type, topic: u.topic, added: "Today", usedIn: [] });
+          QL.libAdd({ text: u.text, type: u.type, topic: u.topic || "", added: "Today", usedIn: [] });
           removeFromInbox([q.text]);
           QL.trackChange("Added “" + short(u.text) + "” to the library");
-          QL.notify("Question added to the library", "Find it under " + u.topic + ". Publish to make it available to everyone.");
+          QL.notify("Question added to the library",
+            (u.topic ? "Find it under " + u.topic + "." : "Find it under Custom questions at the bottom of the list.") +
+            " Publish to make it available to everyone.");
           render();
         }
       }
@@ -326,7 +332,7 @@
       overlay.querySelector("#sgCount").textContent = "Suggestion " + (idx + 1) + " of " + groups.length;
       renderOpts();
       topicMount.innerHTML = "";
-      topic = topicRow(topicNames[0]);
+      topic = topicRow();
       topicMount.appendChild(topic.el);
       if (window.Icons) window.Icons.render();
     }

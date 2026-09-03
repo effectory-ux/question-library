@@ -131,13 +131,29 @@
   var topics = QL.TOPICS.map(function (t) {
     return { name: t.name, custom: false, qs: t.qs.map(function (q) { return { text: q[0], type: q[1], custom: false }; }) };
   });
+  /* custom questions without a topic collect in one fixed group at the bottom
+     of the list — Effectory's structure stays intact, the organisation's
+     unfiled questions stay findable (search, Custom filter) */
+  var PILE = "Custom questions";
+  function pile() {
+    var p = topics.filter(function (t) { return t.pile; })[0];
+    if (!p) { p = { name: PILE, custom: false, pile: true, qs: [] }; topics.push(p); }
+    return p;
+  }
+  function pileLast() {
+    var p = topics.filter(function (t) { return t.pile; })[0];
+    if (!p) return;
+    topics.splice(topics.indexOf(p), 1);
+    topics.push(p);
+  }
   QL.libraryCustom().forEach(function (c) {
-    var t = topics.filter(function (t) { return t.name === c.topic; })[0];
+    var t = (!c.topic || c.topic === PILE) ? pile() : topics.filter(function (t) { return t.name === c.topic; })[0];
     if (!t) { t = { name: c.topic, custom: true, qs: [] }; topics.push(t); }
     t.qs.push({ text: c.text, type: c.type, custom: true, variants: c.variants || [] });
   });
+  pileLast();
   function short(t) { t = QL.fill(t); return t.length > 48 ? t.slice(0, 45) + "…" : t; }
-  function topicNames() { return topics.map(function (t) { return t.name; }); }
+  function topicNames() { return topics.filter(function (t) { return !t.pile; }).map(function (t) { return t.name; }); }
 
   function render() {
     var html = topics.map(function (topic, ti) {
@@ -159,7 +175,7 @@
           "</div>";
       }).join("");
       if (!rows) {
-        if (term || filter) return "";
+        if (term || filter || topic.pile) return "";
         rows = '<div class="q-row" data-empty><span class="text-medium q-text" style="color: var(--content-secondary); cursor: default;">No questions in this topic yet</span></div>';
       }
       return '<div class="q-topic">' +
@@ -207,13 +223,14 @@
     if (q.custom) {
       /* custom content is the organisation's own: fully editable, movable */
       QLQ.openEdit(
-        { text: q.text, type: q.type, topic: topic.name, usedIn: [] },
+        { text: q.text, type: q.type, topic: topic.pile ? "" : topic.name, usedIn: [] },
         {
-          standard: false, topics: topicNames(), pool: [],
+          standard: false, topics: topicNames(), topicOptional: true, pool: [],
           onSave: function (u) {
             q.text = u.text; q.type = u.type;
-            if (u.topic && u.topic !== topic.name) {
-              moveToTopic(topic, q, u.topic, true);
+            var current = topic.pile ? "" : topic.name;
+            if ((u.topic || "") !== current) {
+              moveToTopic(topic, q, u.topic || PILE, true);
             } else {
               QL.trackChange("Edited “" + short(q.text) + "”");
             }
@@ -246,7 +263,8 @@
   }
 
   function moveToTopic(from, q, destName, silent) {
-    var dest = topics.filter(function (t) { return t.name === destName; })[0];
+    var dest = destName === PILE ? pile() : topics.filter(function (t) { return t.name === destName; })[0];
+    pileLast();
     if (!dest || dest === from) return;
     from.qs.splice(from.qs.indexOf(q), 1);
     dest.qs.push(q);
@@ -353,18 +371,19 @@
 
   function addQuestion(nq, intoTopic) {
     var t = intoTopic
-      || topics.filter(function (x) { return x.name === nq.topic; })[0]
-      || topics[topics.length - 1];
+      || (nq.topic ? topics.filter(function (x) { return x.name === nq.topic; })[0] : null)
+      || pile();
+    pileLast();
     var obj = { text: nq.text, type: nq.type, custom: true, variants: [] };
     t.qs.push(obj);
-    QL.libAdd({ text: nq.text, type: nq.type, topic: t.name, added: "Today", usedIn: [] });
+    QL.libAdd({ text: nq.text, type: nq.type, topic: t.pile ? "" : t.name, added: "Today", usedIn: [] });
     QL.trackChange("Added “" + short(nq.text) + "” to " + t.name);
     render();
     return obj;
   }
   function addQuestionDialog() {
     QLQ.openCreate({
-      topics: topicNames(), defaultTopic: topics[0].name, pool: [],
+      topics: topicNames(), topicOptional: true, pool: [],
       onAdd: function (nq) { return addQuestion(nq); }
     });
   }
@@ -387,6 +406,7 @@
       var name = overlay.querySelector("#atName").value.trim();
       if (!name) return;
       topics.push({ name: name, custom: true, qs: [] });
+      pileLast();
       QL.closeOverlay(overlay);
       QL.trackChange("Added topic “" + name + "”");
       QL.notify("Topic added", "Publish your changes to make it live in surveys.");

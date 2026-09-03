@@ -252,7 +252,10 @@ window.QLQ = (function () {
     var hasOpts = function () { return st.type === "multiple" || st.type === "single"; };
     var cleanOpts = function () { return st.opts.map(function (o) { return o.trim(); }).filter(Boolean); };
     var textErr = function () { return st.text.trim().length <= 2; };
-    var topicErr = function () { return !st.topic; };
+    /* topics are findability scaffolding, not mandatory: a question without one
+       collects in the library's custom-questions group */
+    var topicOptional = !!opts.topicOptional;
+    var topicErr = function () { return !st.topic && !topicOptional; };
     var optsErr = function () { return hasOpts() && cleanOpts().length < 2; };
     var isPrimary = function () { return st.active === PRIMARY.code; };
     var trOf = function (code) { return st.tr[code] || {}; };
@@ -320,7 +323,12 @@ window.QLQ = (function () {
     }
 
     /* ── selects ── */
-    var topicItems = (opts.topics || []).map(function (t) { return { value: t, label: t }; });
+    var topicItems = (topicOptional ? [{ value: "", label: "No topic" }] : [])
+      .concat((opts.topics || []).map(function (t) { return { value: t, label: t }; }));
+    if (opts.review || (!editing && !standard)) {
+      /* adding to the library: the field is the destination, not a property */
+      overlay.querySelector(".cq-topic-mount").parentNode.querySelector(".cq-lbl").firstChild.textContent = "Add to topic ";
+    }
     var typeItems = [{ header: true, label: "Standard" }]
       .concat(["scale5", "text"].map(function (k) { return { value: k, label: QTYPES[k].label, lead: qtile(k) }; }))
       .concat([{ header: true, label: "Custom" }])
@@ -328,7 +336,7 @@ window.QLQ = (function () {
     if (st.type === "nps") typeItems.push({ value: "nps", label: QTYPES.nps.label, lead: qtile("nps") });
 
     var topicSel = miniSelect(overlay.querySelector(".cq-topic-mount"), {
-      value: st.topic || undefined, placeholder: "Topic name", items: topicItems, block: true,
+      value: st.topic || (topicOptional ? "" : undefined), placeholder: topicOptional ? "No topic" : "Topic name", items: topicItems, block: true,
       ariaLabel: "Topic",
       invalid: function () { return st.attempted && topicErr(); },
       onChange: function (v) { st.topic = v; renderTopicErr(); if (editing) markDirty(); }
