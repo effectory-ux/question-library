@@ -501,9 +501,8 @@ window.QL = (function () {
     "@media (max-width:1199px) { :root { --page-y: var(--spacing-extra-loose); --page-x: var(--spacing-loose); } }\n" +
     "@media (max-width:575px)  { :root { --page-y: var(--spacing-loose); --page-x: var(--spacing-base); } }\n" +
     "body { background: var(--bg-interface-body); }\n" +
-    /* tab switches are real page loads (one file per tab): a cross-document view
-       transition keeps the shell still and crossfades only the content */
-    "@view-transition { navigation: auto; }\n" +
+    /* the tab router swaps content in place inside a same-document view
+       transition: the shell holds still, only the content crossfades */
     "::view-transition-old(root), ::view-transition-new(root) { animation-duration: .12s; }\n" +
     ".mainnav { view-transition-name: mainnav; } .ph { view-transition-name: page-header; } .pbar { view-transition-name: proto-bar; }\n" +
     "::view-transition-group(mainnav), ::view-transition-group(page-header), ::view-transition-group(proto-bar) { animation-duration: 0s; }\n" +
@@ -1260,16 +1259,6 @@ window.QL = (function () {
       });
     }).catch(function () { location.href = url; });
   }
-  /* cross-document transitions (full page loads) are skipped in a hidden tab;
-     the browser then reports their promises as unhandled — keep that quiet */
-  ["pagereveal", "pageswap"].forEach(function (ev) {
-    window.addEventListener(ev, function (e) {
-      var t = e.viewTransition;
-      if (!t) return;
-      t.ready.catch(function () {});
-      t.finished.catch(function () {});
-    });
-  });
   function initTabRouter() {
     noteLoadedAssets();
     document.addEventListener("click", function (e) {
