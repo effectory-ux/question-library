@@ -45,7 +45,7 @@ prototype; caching is disabled for design iteration).
   plus the shared modules: `question-library-shared.js` (data, publish flow,
   dialogs), `question-library-cq.js` (question create/edit/review dialog with
   fake translations, ported from CYOS phase 2), `question-library-toolbar.js`
-  (this prototype's config for the shared toolbar in `toolbar/`).
+  (this prototype's config for the shared toolbar, whose vendored copy is `toolbar/`).
 - `tokens.css`, `foundation.css`, `components.css`, `icons.js`, `assets/` —
   the bundled design-system files (pinned in `ds-pin.json`).
 - `question-library-v2-prototype.html` — lookalike of the live QL v2 the
