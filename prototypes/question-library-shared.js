@@ -501,6 +501,13 @@ window.QL = (function () {
     "@media (max-width:1199px) { :root { --page-y: var(--spacing-extra-loose); --page-x: var(--spacing-loose); } }\n" +
     "@media (max-width:575px)  { :root { --page-y: var(--spacing-loose); --page-x: var(--spacing-base); } }\n" +
     "body { background: var(--bg-interface-body); }\n" +
+    /* tab switches are real page loads (one file per tab): a cross-document view
+       transition keeps the shell still and crossfades only the content */
+    "@view-transition { navigation: auto; }\n" +
+    "::view-transition-old(root), ::view-transition-new(root) { animation-duration: .12s; }\n" +
+    ".mainnav { view-transition-name: mainnav; } .ph { view-transition-name: page-header; } .pbar { view-transition-name: proto-bar; }\n" +
+    "::view-transition-group(mainnav), ::view-transition-group(page-header), ::view-transition-group(proto-bar) { animation-duration: 0s; }\n" +
+    "@media (prefers-reduced-motion: reduce) { ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; } }\n" +
     /* the [hidden] attribute must always win, also on flex/inline-flex components */
     "[hidden] { display: none !important; }\n" +
     ".app { display: flex; height: 100vh; overflow: hidden; }\n" +

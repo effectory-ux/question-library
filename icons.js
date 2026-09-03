@@ -17,18 +17,38 @@
       .replace(/<svg([^>]*?)\sheight="[^"]*"/, '<svg$1');
   }
 
+  /* Session cache: icons fetched once render synchronously on every later page,
+     so switching tabs doesn't show icons popping in after the paint. */
+  const STORE = 'icons.svg.';
+  function stored(name) { try { return sessionStorage.getItem(STORE + name) || ''; } catch (_) { return ''; } }
+  function store(name, svg) { try { sessionStorage.setItem(STORE + name, svg); } catch (_) {} }
+
   async function fetchIcon(name) {
     if (cache.has(name)) return cache.get(name);
     const p = fetch(`${ASSET_BASE}assets/icons/${encodeURIComponent(name)}.svg`)
       .then(r => r.ok ? r.text() : '')
-      .then(t => t ? normalize(t) : '');
+      .then(t => { const svg = t ? normalize(t) : ''; if (svg) store(name, svg); return svg; });
     cache.set(name, p);
     return p;
+  }
+
+  function place(el, svg) {
+    el.innerHTML = svg;
+    el.dataset.iconLoaded = '1';
+    const s = el.firstElementChild;
+    if (s && s.tagName.toLowerCase() === 'svg') {
+      s.setAttribute('aria-hidden', 'true');
+      s.style.display = 'block';
+      s.setAttribute('width', '100%');
+      s.setAttribute('height', '100%');
+    }
   }
 
   async function renderOne(el) {
     const name = el.getAttribute('data-icon');
     if (!name || el.dataset.iconLoaded) return;
+    const hit = stored(name);
+    if (hit) { place(el, hit); return; }
     const svg = await fetchIcon(name);
     if (!svg) return;
     el.innerHTML = svg;

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Template - My Effectory</title>
   <base href="../" />
+  <link rel="expect" href="#page-script" blocking="render" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="tokens.css" />
@@ -51,7 +52,6 @@
     .q-row.is-drop-target { box-shadow: inset 0 2px 0 var(--border-brand); }
     .tpl-empty { padding: var(--spacing-super-loose) 0; display: flex; flex-direction: column; align-items: center; gap: var(--spacing-base); color: var(--content-secondary); }
     .inline-notif[hidden] { display: none; }
-    /* variables */
     .var-grid-head, .var-grid-row { display: grid; grid-template-columns: 1fr 160px; align-items: center; gap: var(--spacing-base); padding: var(--spacing-base-tight) 0; }
     .var-grid-head { border-bottom: 1px solid var(--border-base); color: var(--content-subtle); }
     .var-grid-row { border-bottom: 1px solid var(--border-base); color: var(--content-base); min-height: 52px; }
@@ -117,12 +117,11 @@
         <div class="tpl-head-actions" id="tplActions"></div>
       </div>
 
-      <!-- Details / Questions / Variables -->
+      <!-- Details / Questions -->
       <div class="card card-outlined tpl-card">
         <div class="tabs tpl-tabs" role="tablist">
           <a class="tab is-active" role="tab" data-panel="details">Details</a>
           <a class="tab" role="tab" data-panel="questions">Questions</a>
-          <a class="tab" role="tab" data-panel="variables">Variables</a>
         </div>
         <div class="card-body">
 
@@ -173,10 +172,6 @@
             <div id="tplSections"></div>
           </div>
 
-          <div id="panel-variables" hidden>
-            <div id="varList" style="margin-top: var(--spacing-loose);"></div>
-          </div>
-
         </div>
       </div>
 
@@ -185,7 +180,7 @@
 </div>
 
 <script src="icons.js"></script>
-<script>
+<script id="page-script">
 (function () {
   "use strict";
   var LIST = "prototypes/question-library-flexible-templates.html";
@@ -247,7 +242,7 @@
   document.querySelectorAll(".tpl-tabs .tab").forEach(function (tab) {
     tab.addEventListener("click", function () {
       document.querySelectorAll(".tpl-tabs .tab").forEach(function (x) { x.classList.toggle("is-active", x === tab); });
-      ["details", "questions", "variables"].forEach(function (p) {
+      ["details", "questions"].forEach(function (p) {
         document.getElementById("panel-" + p).hidden = tab.getAttribute("data-panel") !== p;
       });
     });
@@ -450,26 +445,9 @@
 
   document.getElementById("qSearch").addEventListener("input", function (e) { term = e.target.value.trim(); renderSections(); });
 
-  /* ── variables ── */
-  function renderVariables() {
-    var org = 0, mgr = 0;
-    sections.forEach(function (s) { s.qs.forEach(function (q) {
-      if (q.text.indexOf("{org}") !== -1) org++;
-      if (q.text.indexOf("{manager}") !== -1) mgr++;
-    }); });
-    var rows = [];
-    if (mgr) rows.push(["manager", mgr]);
-    if (org) rows.push([QL.ORG, org]);
-    document.getElementById("varList").innerHTML = rows.length
-      ? '<div class="var-grid-head text-l6"><span>Variable</span><span>Occurrences</span></div>' +
-        rows.map(function (r) { return '<div class="var-grid-row text-medium"><span>' + QL.esc(r[0]) + "</span><span>" + r[1] + "</span></div>"; }).join("")
-      : '<p class="text-medium" style="color: var(--content-secondary); margin: 0;">This template has no variables.</p>';
-  }
-  document.querySelector('[data-panel="variables"]').addEventListener("click", renderVariables);
 
   renderHeader();
   renderSections();
-  renderVariables();
 })();
 </script>
 </body>

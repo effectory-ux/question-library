@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Question library - Templates - My Effectory</title>
   <base href="../" />
+  <link rel="expect" href="#page-script" blocking="render" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="tokens.css" />
@@ -87,7 +88,6 @@
           <a class="ph-tab" href="prototypes/question-library-flexible-questions.html">Questions</a>
           <a class="ph-tab is-active" aria-current="page" href="prototypes/question-library-flexible-templates.html">Templates</a>
           <a class="ph-tab" href="prototypes/question-library-flexible-themes.html">Themes</a>
-          <a class="ph-tab" href="prototypes/question-library-flexible-variables.html">Variables</a>
         </div>
         <div class="ph-divider"></div>
       </div>
@@ -111,7 +111,7 @@
 </div>
 
 <script src="icons.js"></script>
-<script>
+<script id="page-script">
 (function () {
   "use strict";
   var listEl = document.getElementById("tplList");
