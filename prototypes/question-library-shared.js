@@ -1260,6 +1260,16 @@ window.QL = (function () {
       });
     }).catch(function () { location.href = url; });
   }
+  /* cross-document transitions (full page loads) are skipped in a hidden tab;
+     the browser then reports their promises as unhandled — keep that quiet */
+  ["pagereveal", "pageswap"].forEach(function (ev) {
+    window.addEventListener(ev, function (e) {
+      var t = e.viewTransition;
+      if (!t) return;
+      t.ready.catch(function () {});
+      t.finished.catch(function () {});
+    });
+  });
   function initTabRouter() {
     noteLoadedAssets();
     document.addEventListener("click", function (e) {
