@@ -316,7 +316,7 @@ window.QL = (function () {
     { text: "What would make our office days more valuable?", type: "T", topic: "Work environment and conditions", added: "22 Jul 2026", by: "Milan Kovács" },
     { text: "I attended the summer offsite", type: "O", topic: "Company culture", added: "12 Aug 2026", by: "Priya Sharma", avail: false }
   ];
-  function seedOn() { try { return localStorage.getItem("ql.seed") === "1"; } catch (e) { return false; } }
+  function seedOn() { try { return localStorage.getItem("ql.edge.seed") === "1"; } catch (e) { return false; } }
   /* every custom question in play: the base ones, plus the seeded year when on */
   function customQuestions() {
     var base = CUSTOM.map(function (c) { return Object.assign({ by: "You" }, c); });
