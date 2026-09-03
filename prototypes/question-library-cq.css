@@ -688,3 +688,6 @@ button.sel-btn.cq-sel { font-size: 14px; }
    width is actually reachable on smaller screens too */
 .overlay:has(> .cq-dialog) { padding: 24px 16px; }
 .dialog.dialog-worksurface.cq-dialog { width: min(1080px, calc(100vw - 32px)); }
+
+/* create dialog: the "also add to the library" shortcut sits left in the footer */
+.dialog-footer .cq-also { display: inline-flex; align-items: center; gap: var(--spacing-tight); margin-right: auto; font-size: 14px; color: var(--content-base); }

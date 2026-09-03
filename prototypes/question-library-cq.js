@@ -242,6 +242,7 @@ window.QLQ = (function () {
       editingNow: null,
       phase: null,         /* loading | picking | success */
       checked: null, pick: "mine", done: null,
+      also: false,          /* create: also add to the library (opts.alsoLibrary) */
       compact: matchMedia("(max-width: 1160px)").matches
     };
     var timers = [], checkTimer = null, lastSource = "";
@@ -328,6 +329,9 @@ window.QLQ = (function () {
     if (opts.review || (!editing && !standard)) {
       /* adding to the library: the field is the destination, not a property */
       overlay.querySelector(".cq-topic-mount").parentNode.querySelector(".cq-lbl").firstChild.textContent = "Add to topic ";
+    }
+    if (opts.topicLabel) {
+      overlay.querySelector(".cq-topic-mount").parentNode.querySelector(".cq-lbl").firstChild.textContent = opts.topicLabel + " ";
     }
     var typeItems = [{ header: true, label: "Standard" }]
       .concat(["scale5", "text"].map(function (k) { return { value: k, label: QTYPES[k].label, lead: qtile(k) }; }))
@@ -620,7 +624,7 @@ window.QLQ = (function () {
     function buildQ() {
       return {
         text: st.text.trim(), desc: st.desc.trim() || undefined,
-        type: TO_QL[st.type], topic: st.topic, custom: true,
+        type: TO_QL[st.type], topic: st.topic, custom: true, also: !!st.also,
         options: hasOpts() ? cleanOpts() : undefined
       };
     }
@@ -640,7 +644,9 @@ window.QLQ = (function () {
       if (!opts.withCheck) {
         opts.onAdd(buildQ());
         close();
-        if (opts.addNotify) QL.notify(opts.addNotify.title, opts.addNotify.desc);
+        var q0 = buildQ();
+        var note = typeof opts.addNotify === "function" ? opts.addNotify(q0) : opts.addNotify;
+        if (note) QL.notify(note.title, note.desc);
         else QL.notify("Question added to your library");
         return;
       }
@@ -854,11 +860,19 @@ window.QLQ = (function () {
         f.querySelector("[data-del]").addEventListener("click", deleteQuestion);
         f.querySelector("[data-primary]").addEventListener("click", checkThenSubmit);
       } else {
-        f.innerHTML = '<span class="spacer"></span>' +
+        f.innerHTML =
+          /* writing a question outside the library (e.g. in a template): the
+             coordinator's shortcut to make it a library question right away */
+          (opts.alsoLibrary
+            ? '<label class="cb-label-wrap cq-also"><span class="cb-wrap"><input type="checkbox" class="cb" data-also' + (st.also ? " checked" : "") + ' /></span>Also add to the library</label>'
+            : "") +
+          '<span class="spacer"></span>' +
           '<span class="cq-bench-note"><i data-icon="info"></i>Custom questions do not have a benchmark comparison in the results</span>' +
           '<button class="btn btn-secondary" data-cancel>Cancel</button>' +
           '<button class="btn btn-primary' + (busy ? " is-disabled" : "") + '" data-primary' + (busy ? " disabled" : "") + ">" +
           (opts.withCheck ? "Check question" : "Add question") + "</button>";
+        var also = f.querySelector("[data-also]");
+        if (also) also.addEventListener("change", function () { st.also = also.checked; });
         var p = f.querySelector("[data-primary]");
         if (p) p.addEventListener("click", checkThenSubmit);
       }

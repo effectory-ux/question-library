@@ -192,8 +192,9 @@
   /* templates are editable in both versions; benchmark questions inside stay variant-only */
   var editable = true;
   var sections = QL.templateSections(t);   /* working copy, session-scoped */
-  var status = t.status;
   var term = "";
+  function tshort(x) { x = QL.fill(x); return x.length > 48 ? x.slice(0, 45) + "…" : x; }
+  function tplLabel(what) { return "Template “" + t.name + "”: " + what; }
 
   document.title = QL.fill(t.name) + " - My Effectory";
 
@@ -215,17 +216,12 @@
     var a = document.getElementById("tplActions");
     a.innerHTML =
       '<span class="info" data-tt="' + (t.custom ? "Custom template" : "Standard template") + ' · ' + count() + ' questions"><i data-icon="info"></i></span>' +
-      (status === "published"
-        ? '<span class="tag tag-positive">Published</span>'
-        : (editable ? '<button class="btn btn-secondary" id="btnPublishTpl">Publish template</button>' : '<span class="tag is-draft">Unpublished</span>')) +
+      QL.tplStatusTag(QL.getTemplate(slug) || t) +
+      /* one publish for everything: template changes go through the same dialog */
+      '<button class="btn btn-primary" id="btnPublish"><i data-icon="send"></i> Publish</button>' +
       '<button class="ib ib-36 ib-tertiary" id="tplKebab" aria-label="More options" data-tt="More options"><i data-icon="more-vertical"></i></button>';
-    var pub = a.querySelector("#btnPublishTpl");
-    if (pub) pub.addEventListener("click", function () {
-      status = "published";
-      QL.setTplStatus(slug, "published");
-      QL.notify("Template published", "It's now available when creating a survey.");
-      renderHeader();
-    });
+    QL.initPublish();
+    document.addEventListener("ql:published", renderHeader, { once: true });
     a.querySelector("#tplKebab").addEventListener("click", function (e) {
       QL.pickMenu(e.currentTarget, ["Duplicate template"], -1, function () {
         var copy = {
@@ -234,6 +230,7 @@
           sections: sections.map(function (s) { return { name: s.name, qs: s.qs.map(function (q) { return [q.text, q.type, q.custom]; }) }; })
         };
         QL.addCustomTemplate(copy);
+        QL.trackChange("Created template “" + copy.name + "”", { tpl: copy.slug, kind: "create" });
         location.href = "prototypes/question-library-template.html?t=" + copy.slug;
       });
     });
@@ -268,8 +265,17 @@
     fldTitle.addEventListener("change", function () {
       var v = fldTitle.value.trim();
       if (!v) { fldTitle.value = t.name; return; }
+      var was = t.name;
       t.name = v;
       QL.setTplName(slug, v);
+      QL.trackChange("Template “" + v + "”: renamed from “" + was + "”", { tpl: slug });
+      renderHeader();
+    });
+    var descTracked = false;
+    rteBody.addEventListener("input", function () {
+      if (descTracked) return;
+      descTracked = true;
+      QL.trackChange(tplLabel("description edited"), { tpl: slug });
       renderHeader();
     });
     document.getElementById("rteToolbar").addEventListener("click", function (e) {
@@ -345,7 +351,9 @@
         e.stopPropagation();
         QL.pickMenu(e.currentTarget, ["Remove from template"], -1, function () {
           s.qs.splice(s.qs.indexOf(q), 1);
+          QL.trackChange(tplLabel("removed “" + tshort(q.text) + "”"), { tpl: slug });
           QL.notify("Question removed from this template");
+          renderHeader();
           renderSections();
         });
       });
@@ -367,6 +375,8 @@
         if (!dragging || dragging === row || dragging.parentElement !== row.parentElement) return;
         var from = +dragging.getAttribute("data-q"), to = +row.getAttribute("data-q");
         s.qs.splice(to, 0, s.qs.splice(from, 1)[0]);
+        QL.trackChange(tplLabel("questions reordered"), { tpl: slug });
+        renderHeader();
         renderSections();
       });
     });
@@ -392,11 +402,27 @@
       else QLQ.openCreate({
         topics: sections.map(function (s) { return s.name; }).concat(sections.length ? [] : ["New questions"]),
         defaultTopic: (sections[0] || {}).name || "New questions",
+        topicLabel: "Add to section",
+        alsoLibrary: true,   /* coordinator shortcut; who may use it is a permissions question */
         pool: [],
+        addNotify: function (q) {
+          return q.also
+            ? { title: "Question added to the template and the library", desc: "Find it under Custom questions in the library. Publish to make it available to everyone." }
+            : { title: "Question added to the template", desc: "It’s also listed under To review, where you can add it to the library later." };
+        },
         onAdd: function (nq) {
           var s = sections.filter(function (x) { return x.name === nq.topic; })[0];
-          if (!s) { s = { name: nq.topic, qs: [] }; sections.push(s); }
+          if (!s) { s = { name: nq.topic || "New questions", qs: [] }; sections.push(s); }
           s.qs.push({ text: nq.text, type: nq.type, custom: true });
+          QL.trackChange(tplLabel("added “" + tshort(nq.text) + "”"), { tpl: slug });
+          if (nq.also) {
+            QL.libAdd({ text: nq.text, type: nq.type, topic: "", added: "Today", usedIn: [] });
+            QL.trackChange("Added “" + tshort(nq.text) + "” to the library");
+          } else {
+            /* the rule everywhere: a question lives where it was written until the library takes it */
+            QL.inboxAdd({ text: nq.text, type: nq.type, by: "You", added: "Today", uses: 1, where: "Used in 1 template" });
+          }
+          renderHeader();
           renderSections();
         }
       });
@@ -435,6 +461,8 @@
         b.addEventListener("click", function () {
           var q = pool[+b.getAttribute("data-add")];
           targetSection().qs.push({ text: q.text, type: q.type, custom: false });
+          QL.trackChange(tplLabel("added “" + tshort(q.text) + "”"), { tpl: slug });
+          renderHeader();
           renderList();
           renderSections();
         });

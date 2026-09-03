@@ -141,7 +141,7 @@
   var items = QL.inboxQuestions().slice().sort(function (a, b) { return (b.uses || 0) - (a.uses || 0); });
   var topicNames = QL.TOPICS.map(function (t) { return t.name; });
   function short(t) { t = QL.fill(t); return t.length > 48 ? t.slice(0, 45) + "…" : t; }
-  function uses(q) { return (q.uses || 0) === 1 ? "Used in 1 survey" : "Used in " + (q.uses || 0) + " surveys"; }
+  function uses(q) { if (q.where) return q.where; return (q.uses || 0) === 1 ? "Used in 1 survey" : "Used in " + (q.uses || 0) + " surveys"; }
 
   /* ── smart recommendations: greedy clustering on wording similarity ── */
   function findClusters() {

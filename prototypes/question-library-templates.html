@@ -131,7 +131,7 @@
         : '<span class="tpl-img is-doc"><i data-icon="clipboard-note"></i></span>') +
       '<span class="tpl-name"><span class="text-l5">' + QL.esc(t.name) + '</span><span class="tpl-kind">' + (t.custom ? "Custom template" : "Standard template") + "</span></span>" +
       '<span class="tpl-count">' + count + (count === 1 ? " question" : " questions") + "</span>" +
-      (t.status === "published" ? '<span class="tag tag-positive">Published</span>' : '<span class="tag is-draft">Unpublished</span>') +
+      QL.tplStatusTag(t) +
       '<button class="ib ib-24 ib-tertiary" data-kebab aria-label="More options" data-tt="More options"><i data-icon="more-vertical"></i></button>' +
       "</div>";
   }
@@ -172,6 +172,7 @@
       })
     };
     QL.addCustomTemplate(copy);
+    QL.trackChange("Created template “" + copy.name + "”", { tpl: copy.slug, kind: "create" });
     QL.notify("Template duplicated", "The copy is unpublished until you publish it.");
     render();
   }
@@ -194,10 +195,12 @@
       if (!name) return;
       var slug = "custom-" + Date.now().toString(36);
       QL.addCustomTemplate({ slug: slug, name: name, img: null, desc: "", sections: [] });
+      QL.trackChange("Created template “" + name + "”", { tpl: slug, kind: "create" });
       location.href = DETAIL + "?t=" + slug;
     });
   });
 
+  document.addEventListener("ql:published", render);
   searchEl.addEventListener("input", function () { term = searchEl.value.trim(); render(); });
 
   render();

@@ -362,6 +362,12 @@ window.QL = (function () {
   function libraryCustom() {
     return CUSTOM.filter(function (c) { return c.avail !== false; }).concat(libStore());
   }
+  /* questions written outside the library this session (e.g. in a template)
+     show up in To review like everything else */
+  function inboxNew() { try { return JSON.parse(sessionStorage.getItem("ql.inboxNew") || "[]"); } catch (e) { return []; } }
+  function inboxAdd(q) {
+    try { var l = inboxNew(); l.unshift(q); sessionStorage.setItem("ql.inboxNew", JSON.stringify(l)); } catch (e) {}
+  }
   function inboxGone() { try { return JSON.parse(sessionStorage.getItem("ql.inboxGone") || "[]"); } catch (e) { return []; } }
   function inboxRemove(texts) {
     try { sessionStorage.setItem("ql.inboxGone", JSON.stringify(inboxGone().concat(texts))); } catch (e) {}
@@ -371,7 +377,7 @@ window.QL = (function () {
   function inboxQuestions() {
     var seen = {}, gone = {};
     inboxGone().forEach(function (t) { gone[t] = true; });
-    var all = INBOX
+    var all = inboxNew().concat(INBOX)
       .concat(CUSTOM.filter(function (c) { return c.avail === false; }).map(function (c) {
         return { text: c.text, type: c.type, by: "You", added: c.added, uses: 1 };
       }))
@@ -632,11 +638,29 @@ window.QL = (function () {
   function changesList() { try { return JSON.parse(localStorage.getItem("ql.changes2") || "[]"); } catch (e) { return []; } }
   function saveChangesList(l) { try { localStorage.setItem("ql.changes2", JSON.stringify(l)); } catch (e) {} }
   function changesCount() { return changesList().length; }
-  function trackChange(label) {
+  /* a change is a label, optionally with meta ({tpl: slug, kind: "create"})
+     so publishing can flip a template's status */
+  function changeLabel(c) { return typeof c === "string" ? c : (c && c.label) || "Change"; }
+  function trackChange(label, meta) {
     var l = changesList();
-    l.push(String(label || "Change"));
+    l.push(meta ? { label: String(label || "Change"), meta: meta } : String(label || "Change"));
     saveChangesList(l);
     updatePublish();
+  }
+  /* template status, derived: never published → draft; published with pending
+     changes in the publish list → changed; otherwise published */
+  function tplPending(slug) {
+    return changesList().filter(function (c) { return c && c.meta && c.meta.tpl === slug; });
+  }
+  function tplStatus(t) {
+    if (!t || t.status !== "published") return "draft";
+    return tplPending(t.slug).length ? "changed" : "published";
+  }
+  function tplStatusTag(t) {
+    var s = tplStatus(t);
+    return s === "published" ? '<span class="tag tag-positive">Published</span>'
+      : s === "changed" ? '<span class="tag tag-warning">Unpublished changes</span>'
+      : '<span class="tag is-draft">Draft</span>';
   }
   function updatePublish() {
     var b = document.getElementById("btnPublish");
@@ -650,8 +674,11 @@ window.QL = (function () {
   /* a human summary of the selected changes: what they are, in plain words */
   function summarizeChanges(labels) {
     var c = { added: 0, combined: 0, wording: 0, edited: 0, moved: 0, topics: 0, renamed: 0, removed: 0, other: 0 };
+    c.tplNew = 0; c.tplEdits = 0;
     labels.forEach(function (s) {
-      if (/^Added topic/.test(s)) c.topics++;
+      if (/^Created template/.test(s)) c.tplNew++;
+      else if (/^Template “/.test(s)) c.tplEdits++;
+      else if (/^Added topic/.test(s)) c.topics++;
       else if (/^Combined/.test(s)) c.combined++;
       else if (/^Added|^Approved/.test(s)) c.added++;
       else if (/^Selected alternative wording/.test(s)) c.wording++;
@@ -669,6 +696,8 @@ window.QL = (function () {
     add(c.edited, "1 improved question", "improved questions");
     add(c.moved, "1 question in a better place", "questions in a better place");
     add(c.topics, "1 new topic", "new topics");
+    add(c.tplNew, "1 new template", "new templates");
+    add(c.tplEdits, "1 template change", "template changes");
     add(c.renamed, "1 clearer name", "clearer names");
     add(c.removed, "1 question removed", "questions removed");
     add(c.other, "1 other change", "other changes");
@@ -689,7 +718,7 @@ window.QL = (function () {
       '<div class="dialog-body" style="max-height: 44vh; overflow-y: auto; display: flex; flex-direction: column; gap: var(--spacing-tight);">' +
       '<div class="text-l6" style="color: var(--content-subtle);">Your changes</div>' +
       l.map(function (c, i) {
-        return '<label class="cb-label-wrap"><span class="cb-wrap"><input type="checkbox" class="cb" checked data-i="' + i + '" /></span>' + esc(c) + "</label>";
+        return '<label class="cb-label-wrap"><span class="cb-wrap"><input type="checkbox" class="cb" checked data-i="' + i + '" /></span>' + esc(changeLabel(c)) + "</label>";
       }).join("") +
       '<p class="text-medium" style="margin: var(--spacing-tight) 0 0; color: var(--content-secondary);">Everyone who creates surveys and templates gets your updated library right away. Surveys that are already running keep the questions they have — nothing changes for participants.</p>' +
       "</div>" +
@@ -710,18 +739,24 @@ window.QL = (function () {
       go.disabled = !sel.length;
       go.classList.toggle("is-disabled", !sel.length);
       summaryEl.textContent = sel.length
-        ? "You're about to make your library better: " + summarizeChanges(sel) + "."
+        ? "You're about to make your library better: " + summarizeChanges(sel.map(changeLabel)) + "."
         : "Select the changes you want to make live.";
     }
     overlay.querySelectorAll(".cb").forEach(function (cb) { cb.addEventListener("change", renderGo); });
     renderGo();
     go.addEventListener("click", function () {
-      var keep = [];
+      var keep = [], done = [];
       overlay.querySelectorAll(".cb").forEach(function (cb) {
-        if (!cb.checked) keep.push(l[+cb.getAttribute("data-i")]);
+        (cb.checked ? done : keep).push(l[+cb.getAttribute("data-i")]);
       });
-      var published = l.length - keep.length;
+      var published = done.length;
       saveChangesList(keep);
+      /* a published "Created template" makes that template live */
+      done.forEach(function (c) {
+        if (c && c.meta && c.meta.tpl && c.meta.kind === "create") setTplStatus(c.meta.tpl, "published");
+      });
+      /* pages showing a status derived from the change list re-render on this */
+      document.dispatchEvent(new CustomEvent("ql:published", { detail: { published: done, kept: keep } }));
       updatePublish();
       closeOverlay(overlay);
       notify(published === 1 ? "1 change is live" : published + " changes are live",
@@ -1289,7 +1324,8 @@ window.QL = (function () {
     setTplName: setTplName, addCustomTemplate: addCustomTemplate,
     seedOn: seedOn, customQuestions: customQuestions, changesList: changesList,
     libraryCustom: libraryCustom, libAdd: libAdd,
-    inboxQuestions: inboxQuestions, inboxRemove: inboxRemove,
+    inboxQuestions: inboxQuestions, inboxRemove: inboxRemove, inboxAdd: inboxAdd,
+    tplStatus: tplStatus, tplStatusTag: tplStatusTag, initPublish: initPublish,
     initPage: initPage, loadTab: loadTab
   };
 })();
