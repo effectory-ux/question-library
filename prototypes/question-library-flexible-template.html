@@ -399,7 +399,11 @@
   function addMenu(trigger) {
     QL.pickMenu(trigger, ["From your library", "Write a new question"], -1, function (i) {
       if (i === 0) fromLibraryDialog();
-      else QLQ.openCreate({
+      else writeNewQuestion();
+    });
+  }
+  function writeNewQuestion() {
+    QLQ.openCreate({
         topics: sections.map(function (s) { return s.name; }).concat(sections.length ? [] : ["New questions"]),
         defaultTopic: (sections[0] || {}).name || "New questions",
         topicLabel: "Add to section",
@@ -426,9 +430,10 @@
           renderSections();
         }
       });
-    });
   }
   addBtn.addEventListener("click", function (e) { addMenu(e.currentTarget); });
+  /* deep link from the toolbar's Screens */
+  if (new URLSearchParams(location.search).get("open") === "add-question") setTimeout(writeNewQuestion, 120);
 
   function fromLibraryDialog() {
     var overlay = QL.openOverlay(

@@ -422,6 +422,11 @@
   document.getElementById("ibSearch").addEventListener("input", function (e) { term = e.target.value.trim(); render(); });
 
   render();
+
+  /* deep links from the toolbar's Screens: open a dialog on arrival */
+  var openParam = new URLSearchParams(location.search).get("open");
+  if (openParam === "review" && items.length) setTimeout(function () { promoteDialog(items[0]); }, 80);
+  if (openParam === "suggestions") setTimeout(suggestDialog, 80);
 })();
 </script>
 </body>

@@ -3,9 +3,19 @@
 <head>
   <meta charset="utf-8" />
   <title>Question library V3</title>
-  <!-- the prototype starts at the library; the query string carries the
-       toolbar flag along, so both kinds of links work from this root -->
-  <script>location.replace("prototypes/question-library-questions.html" + location.search);</script>
+  <!-- the prototype starts at the library — or on the screen chosen in the
+       toolbar's Start column (ProtoToolbar.startPath, remembered per browser);
+       the query string carries the toolbar flag along either way -->
+  <script>
+    (function () {
+      var start = null;
+      try { start = localStorage.getItem("ql.startPath"); } catch (e) {}
+      var target = start || "prototypes/question-library-questions.html";
+      var q = location.search.replace(/^\?/, "");
+      if (q) target += (target.indexOf("?") === -1 ? "?" : "&") + q;
+      location.replace(target);
+    })();
+  </script>
   <meta http-equiv="refresh" content="0; url=prototypes/question-library-questions.html" />
 </head>
 <body>

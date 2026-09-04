@@ -438,6 +438,9 @@
   });
 
   render();
+
+  /* deep link from the toolbar's Screens: open a dialog on arrival */
+  if (new URLSearchParams(location.search).get("open") === "add-question") setTimeout(addQuestionDialog, 80);
 })();
 </script>
 </body>

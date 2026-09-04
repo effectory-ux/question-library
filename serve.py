@@ -5,19 +5,13 @@ PORT = int(os.environ.get("PORT", 3000))
 # Serve the folder this script sits in (was hard-coded to one machine's Downloads path)
 DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 
-LANDING = "/prototypes/question-library-questions.html"
-
 class Handler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=DIRECTORY, **kwargs)
 
     def do_GET(self):
-        # the repo root has no index page — send visitors to the prototype
-        if self.path in ("/", "/index.html"):
-            self.send_response(302)
-            self.send_header("Location", LANDING)
-            self.end_headers()
-            return
+        # "/" serves index.html, which sends visitors to the prototype (or to the
+        # start chosen in the toolbar) — the same behaviour as GitHub Pages
         super().do_GET()
 
     def end_headers(self):

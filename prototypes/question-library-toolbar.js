@@ -25,20 +25,33 @@
       { key: "b", label: "Fixed", match: function (u) { return !isFlex(u); }, go: toFixed,
         desc: "Effectory's catalog stays as it is; the organisation's custom questions live in their own managed collection." }
     ],
-    /* every page of this prototype, per version: the four tabs and the template
-       detail (a template as the example). Dialogs are sub-functionality of these. */
-    screens: [
-      { key: "questions", label: "Questions", href: screen("questions"),
-        desc: "The library: benchmarked and custom questions in one governed list." },
-      { key: "custom", label: "To review", href: "question-library-custom.html",
-        desc: "Custom questions created in surveys: spot similar ones, combine them, add them to the library." },
-      { key: "templates", label: "Templates", href: screen("templates"),
-        desc: "Standard and custom templates; open one to edit it." },
-      { key: "template", label: "Template detail (DEI)", href: function (u) { return screen("template")(u) + "?t=dei"; },
-        desc: "Editing a template: details, questions and sections." },
-      { key: "themes", label: "Themes", href: screen("themes"),
-        desc: "The themes questions report to." }
-    ].filter(function (s) { return !(flex && s.key === "custom"); }), // To review exists in Fixed only
+    /* every screen of this prototype, per version — the tabs, the template
+       detail, and the dialogs that belong to them (deep links: ?open=…). */
+    screens: (function () {
+      function page(name) { return function (u) { return file(u) === screen(name)(u); }; }
+      function open(name, what) { return function (u) { return file(u) === screen(name)(u) && u.searchParams.get("open") === what; }; }
+      function plain(name) { return function (u) { return file(u) === screen(name)(u) && !u.searchParams.get("open"); }; }
+      return [
+        { key: "questions", group: "Questions", label: "Questions", href: screen("questions"), match: plain("questions"),
+          desc: "The library: benchmarked and custom questions in one governed list." },
+        { key: "add-question", group: "Questions", label: "Add a question", href: function (u) { return screen("questions")(u) + "?open=add-question"; }, match: open("questions", "add-question"),
+          desc: "Dialog: write a custom question for the library." },
+        { key: "custom", group: "To review", label: "To review", href: "question-library-custom.html", match: function (u) { return file(u) === "question-library-custom.html" && !u.searchParams.get("open"); },
+          desc: "Custom questions created in surveys, waiting to be looked at." },
+        { key: "review", group: "To review", label: "Review a question", href: "question-library-custom.html?open=review", match: function (u) { return file(u) === "question-library-custom.html" && u.searchParams.get("open") === "review"; },
+          desc: "Dialog: the question settings in review mode — add it to the library." },
+        { key: "suggestions", group: "To review", label: "Combine similar questions", href: "question-library-custom.html?open=suggestions", match: function (u) { return file(u) === "question-library-custom.html" && u.searchParams.get("open") === "suggestions"; },
+          desc: "Dialog: step through the similar-question suggestions." },
+        { key: "templates", group: "Templates", label: "Templates", href: screen("templates"), match: page("templates"),
+          desc: "Standard and custom templates." },
+        { key: "template", group: "Templates", label: "Template detail (DEI)", href: function (u) { return screen("template")(u) + "?t=dei"; }, match: plain("template"),
+          desc: "Editing a template: details, sections and questions." },
+        { key: "template-add", group: "Templates", label: "Write a question in a template", href: function (u) { return screen("template")(u) + "?t=dei&open=add-question"; }, match: open("template", "add-question"),
+          desc: "Dialog: a template-scoped question, optionally also added to the library." },
+        { key: "themes", group: "Themes", label: "Themes", href: screen("themes"), match: page("themes"),
+          desc: "The themes questions report to." }
+      ].filter(function (s) { return !(flex && s.group === "To review"); }); // To review exists in Fixed only
+    })(),
     edgeCases: [
       { key: "seed", label: "A year of custom content",
         desc: "Seeds ±25 accumulated custom questions: near-duplicates, stale one-offs, a few gems. For the findability and cleanup tasks." }
