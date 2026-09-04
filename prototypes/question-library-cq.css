@@ -691,3 +691,6 @@ button.sel-btn.cq-sel { font-size: 14px; }
 
 /* create dialog: the "also add to the library" shortcut sits left in the footer */
 .dialog-footer .cq-also { display: inline-flex; align-items: center; gap: var(--spacing-tight); margin-right: auto; font-size: 14px; color: var(--content-base); }
+/* a topic suggested from the wording, and the "library already has this" note */
+.cq-topic-hint { margin-top: 4px; font-size: 12px; line-height: 1.5; color: var(--content-secondary); }
+.cq-sim { margin-bottom: var(--spacing-base); }

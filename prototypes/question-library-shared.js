@@ -5,6 +5,14 @@
 window.QL = (function () {
   "use strict";
 
+  (function () {
+    var s = document.createElement("style");
+    s.textContent =
+      ".sysnotif-action{background:none;border:0;padding:0;font:inherit;font-size:14px;font-weight:500;line-height:1.6;color:var(--content-inverse);text-decoration:underline;cursor:pointer}" +
+      ".ib-sim{background:none;border:0;padding:0;font:inherit;font-size:inherit;color:var(--content-brand);cursor:pointer}.ib-sim:hover{text-decoration:underline}";
+    document.head.appendChild(s);
+  })();
+
   var ORG = "Questionnaire Logincode Migration"; // this project's org-name variable
 
   /* Answer types: L Likert · O Other · N eNPS · T Open text.
@@ -437,7 +445,7 @@ window.QL = (function () {
       sections: [{ name: "Your first weeks", qs: [
         ["I received the information I needed before my first day", "L"],
         ["I felt welcome during my first week", "L"]] }] },
-    { slug: "template-about-work", name: "Template about work", custom: true, status: "unpublished", img: null,
+    { slug: "template-about-work", name: "Template about work", custom: true, status: "unpublished", img: null, by: "Rob Janssen",
       desc: "", sections: [] }
   ];
   function templateSections(t) {
@@ -463,7 +471,7 @@ window.QL = (function () {
       return o;
     });
     (s.custom || []).forEach(function (c) {
-      list.push(Object.assign({ custom: true, status: "unpublished", img: null, desc: "", sections: [] }, c,
+      list.push(Object.assign({ custom: true, status: "unpublished", img: null, desc: "", sections: [], by: "you" }, c,
         (s.status && s.status[c.slug]) ? { status: s.status[c.slug] } : {},
         (s.names && s.names[c.slug]) ? { name: s.names[c.slug] } : {}));
     });
@@ -614,7 +622,7 @@ window.QL = (function () {
   });
 
   /* ── system notification ── */
-  function notify(title, desc) {
+  function notify(title, desc, action) {
     var stack = document.querySelector(".sysnotif-stack");
     if (!stack) {
       stack = document.createElement("div");
@@ -626,11 +634,13 @@ window.QL = (function () {
     n.setAttribute("role", "status");
     n.innerHTML = '<div class="sysnotif-title">' + esc(title) + "</div>" +
       (desc ? '<div class="sysnotif-desc">' + esc(desc) + "</div>" : "") +
+      (action ? '<button class="sysnotif-action">' + esc(action.label) + "</button>" : "") +
       '<button class="sysnotif-close" aria-label="Dismiss"><i data-icon="cross"></i></button>';
     stack.appendChild(n);
     n.querySelector(".sysnotif-close").addEventListener("click", function () { n.remove(); });
+    if (action) n.querySelector(".sysnotif-action").addEventListener("click", function () { n.remove(); action.onClick(); });
     if (window.Icons) window.Icons.render();
-    setTimeout(function () { n.remove(); }, desc ? 5000 : 4000);
+    setTimeout(function () { n.remove(); }, action ? 8000 : desc ? 5000 : 4000);
   }
 
   /* ── publish mechanic: a labeled change log, reviewed and published (fully or
@@ -647,6 +657,37 @@ window.QL = (function () {
     saveChangesList(l);
     updatePublish();
   }
+  /* what is still unpublished, per question (meta.q) or new topic
+     (meta.topicNew) — the Unpublished tags in the list read this */
+  function pendingFor(text) { return changesList().filter(function (c) { return c && c.meta && c.meta.q === text; }); }
+  function pendingTopic(name) { return changesList().filter(function (c) { return c && c.meta && c.meta.topicNew === name; }); }
+  /* undo: drop the most recent change that matches */
+  function dropChange(pred) {
+    var l = changesList();
+    for (var i = l.length - 1; i >= 0; i--) { if (pred(l[i])) { l.splice(i, 1); break; } }
+    saveChangesList(l);
+    updatePublish();
+  }
+  var DRAFT_NOTE = "Saved to your draft. Survey creators will see it once you publish.";
+  function draftTag() { return '<span class="tag tag-warning" data-tt="' + DRAFT_NOTE + '">Unpublished</span>'; }
+
+  /* publish log: every publish is a bookmark in time (Figma library versions,
+     Qualtrics reference surveys) — the smallest useful audit trail */
+  var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  function publishLog() {
+    try { var l = JSON.parse(localStorage.getItem("ql.publishLog") || "null"); if (l && l.length) return l; } catch (e) {}
+    return [{ date: "28 Aug 2026", by: "Linda Bakker", count: 6 }];
+  }
+  function logPublish(count) {
+    var d = new Date(), l = publishLog();
+    l.push({ date: d.getDate() + " " + MONTHS[d.getMonth()] + " " + d.getFullYear(), by: "you", count: count });
+    try { localStorage.setItem("ql.publishLog", JSON.stringify(l)); } catch (e) {}
+  }
+  function lastPublished() {
+    var l = publishLog(), e = l[l.length - 1];
+    return "Last published " + e.date + " by " + e.by + " · " + e.count + (e.count === 1 ? " change" : " changes");
+  }
+
   /* template status, derived: never published → draft; published with pending
      changes in the publish list → changed; otherwise published */
   function tplPending(slug) {
@@ -669,6 +710,7 @@ window.QL = (function () {
     b.disabled = !n;
     b.classList.toggle("is-disabled", !n);
     b.innerHTML = '<i data-icon="send"></i> Publish' + (n ? " (" + n + ")" : "");
+    b.setAttribute("data-tt", lastPublished());
     if (window.Icons) window.Icons.render();
   }
   /* a human summary of the selected changes: what they are, in plain words */
@@ -685,7 +727,7 @@ window.QL = (function () {
       else if (/^Edited/.test(s)) c.edited++;
       else if (/^Moved|^Reordered/.test(s)) c.moved++;
       else if (/^Renamed/.test(s)) c.renamed++;
-      else if (/^Deleted|unavailable”?$/.test(s)) c.removed++;
+      else if (/^Deleted|^Removed|unavailable”?$/.test(s)) c.removed++;
       else c.other++;
     });
     var parts = [];
@@ -722,7 +764,8 @@ window.QL = (function () {
       }).join("") +
       '<p class="text-medium" style="margin: var(--spacing-tight) 0 0; color: var(--content-secondary);">Everyone who creates surveys and templates gets your updated library right away. Surveys that are already running keep the questions they have — nothing changes for participants.</p>' +
       "</div>" +
-      '<div class="dialog-footer"><button class="btn btn-secondary" data-close>Cancel</button>' +
+      '<div class="dialog-footer"><span class="text-small" style="margin-right: auto; color: var(--content-secondary);">' + esc(lastPublished()) + "</span>" +
+      '<button class="btn btn-secondary" data-close>Cancel</button>' +
       '<button class="btn btn-primary" id="pubGo"></button></div>' +
       "</div></div>"
     );
@@ -756,6 +799,7 @@ window.QL = (function () {
         if (c && c.meta && c.meta.tpl && c.meta.kind === "create") setTplStatus(c.meta.tpl, "published");
       });
       /* pages showing a status derived from the change list re-render on this */
+      logPublish(published);
       document.dispatchEvent(new CustomEvent("ql:published", { detail: { published: done, kept: keep } }));
       updatePublish();
       closeOverlay(overlay);
@@ -1062,13 +1106,13 @@ window.QL = (function () {
     overlay.querySelector("#epDelete").addEventListener("click", function () {
       confirmDialog({
         icon: "error",
-        title: "Delete this question?",
-        subtitle: "It will be removed from your library. Surveys that already use it keep their own copy.",
-        confirmLabel: "Delete",
+        title: "Remove this question from the library?",
+        subtitle: "It stays in the surveys and templates that already use it. New surveys can't pick it from the library anymore.",
+        confirmLabel: "Remove",
         danger: true
       }, function () {
         closeOverlay(overlay);
-        notify("Question deleted");
+        notify("Question removed from the library", "It stays in the surveys and templates that already use it.");
         cb("delete");
       });
     });
@@ -1164,7 +1208,7 @@ window.QL = (function () {
       if (!v) return;
       closeOverlay(overlay);
       trackChange("Renamed " + kindLabel + " “" + name + "” to “" + v + "”");
-      notify(kindLabel.charAt(0).toUpperCase() + kindLabel.slice(1) + " renamed", "Publish your changes to make them live in surveys.");
+      notify(kindLabel.charAt(0).toUpperCase() + kindLabel.slice(1) + " renamed", DRAFT_NOTE);
       cb(v);
     });
   }
@@ -1172,12 +1216,22 @@ window.QL = (function () {
   /* ── shared shell bindings (run per page after DOM is ready) ── */
   /* per-tab-content bindings: run on load and again after the tab router
      swaps in another tab's content */
+  /* the To review badge is an unread count, not a backlog: it shows what
+     arrived since you last looked and clears when you open the tab */
+  function inboxSeen() { try { return JSON.parse(localStorage.getItem("ql.inboxSeen") || "[]"); } catch (e) { return []; } }
+  function inboxUnseen() { var seen = inboxSeen(); return inboxQuestions().filter(function (q) { return seen.indexOf(q.text) === -1; }); }
+  function inboxMarkSeen() { try { localStorage.setItem("ql.inboxSeen", JSON.stringify(inboxQuestions().map(function (q) { return q.text; }))); } catch (e) {} }
+  function refreshInboxTab() {
+    var inboxTab = document.getElementById("tabInbox");
+    if (!inboxTab) return;
+    if (inboxTab.classList.contains("is-active") || inboxTab.getAttribute("aria-current") === "page") inboxMarkSeen();
+    var n = inboxUnseen().length;
+    inboxTab.textContent = n ? "To review (" + n + ")" : "To review";
+  }
   function initPage() {
     initLang();
     updatePublish();
-    /* the To review tab carries its count on every page of the Fixed version */
-    var inboxTab = document.getElementById("tabInbox");
-    if (inboxTab) inboxTab.textContent = "To review (" + inboxQuestions().length + ")";
+    refreshInboxTab();
   }
   function initShell() {
     var learn = document.getElementById("btnLearnMore");
@@ -1311,6 +1365,8 @@ window.QL = (function () {
   }
 
   return {
+    pendingFor: pendingFor, pendingTopic: pendingTopic, dropChange: dropChange, draftTag: draftTag, DRAFT_NOTE: DRAFT_NOTE,
+    refreshInboxTab: refreshInboxTab, lastPublished: lastPublished,
     ORG: ORG, TYPES: TYPES, TOPICS: TOPICS, THEMES: THEMES,
     CUSTOM: CUSTOM, PENDING: PENDING, USAGE: USAGE, STATUS_TAG: STATUS_TAG,
     esc: esc, fill: fill, hl: hl, matches: matches,

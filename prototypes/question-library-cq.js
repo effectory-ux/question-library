@@ -102,7 +102,7 @@ window.QLQ = (function () {
     });
     return out;
   }
-  function similarQuestions(text, pool, limit) {
+  function similarScored(text, pool, limit, min) {
     var toks = Array.from(tokenize(text));
     if (!toks.length) return [];
     return pool.map(function (q) {
@@ -111,9 +111,51 @@ window.QLQ = (function () {
       var hits = toks.filter(function (t) { return qt.some(function (u) { return alike(t, u); }); }).length;
       var score = (2 * hits) / (toks.length + qt.length) + (q.bench ? 0.03 : 0);
       return { q: q, score: score };
-    }).filter(function (m) { return m.score >= 0.34; })
+    }).filter(function (m) { return m.score >= (min === undefined ? 0.34 : min); })
       .sort(function (a, b) { return b.score - a.score; })
-      .slice(0, limit || 3).map(function (m) { return m.q; });
+      .slice(0, limit || 3);
+  }
+  /* min: the bar for "similar" — 0.34 finds rewordings inside one list; a
+     library of 150 questions needs a higher one (custom.html passes 0.5) */
+  function similarQuestions(text, pool, limit, min) {
+    return similarScored(text, pool, limit, min).map(function (m) { return m.q; });
+  }
+
+  /* which library topic the wording points to: a word of the topic's name
+     weighs most; a word from the topic's questions counts by how rare it is
+     across topics (tf·idf); stems match exactly ("management" is not
+     "manager"); no clear winner → no suggestion */
+  function topicScores(text, topicNames) {
+    var topics = ((window.QL && QL.TOPICS) || []).filter(function (t) { return !topicNames || !topicNames.length || topicNames.indexOf(t.name) !== -1; });
+    var toks = Array.from(tokenize(text));
+    if (!toks.length || !topics.length) return [];
+    var bags = topics.map(function (t) {
+      var bag = {};
+      (t.qs || []).forEach(function (q) { tokenize(q[0]).forEach(function (w) { bag[w] = (bag[w] || 0) + 1; }); });
+      return bag;
+    });
+    function countIn(bag, w) { return bag[w] || 0; } /* exact stems: "manager" is not "management" */
+    var N = topics.length, norm = Math.log(N + 1);
+    var idf = {};
+    toks.forEach(function (w) {
+      var df = bags.filter(function (bag) { return countIn(bag, w) > 0; }).length;
+      idf[w] = df ? Math.log((N + 1) / df) / norm : 0;
+    });
+    return topics.map(function (t, i) {
+      var nameToks = Array.from(tokenize(t.name)), score = 0;
+      toks.forEach(function (w) {
+        if (nameToks.indexOf(w) !== -1) score += 3;
+        var cnt = countIn(bags[i], w);
+        if (cnt) score += (Math.min(cnt, 3) / 3) * idf[w];
+      });
+      return { name: t.name, score: score / toks.length };
+    }).sort(function (a, b) { return b.score - a.score; });
+  }
+  function suggestTopic(text, topicNames) {
+    var r = topicScores(text, topicNames);
+    if (!r.length || r[0].score < 0.3) return "";
+    if (r.length > 1 && r[1].score > r[0].score * 0.7) return ""; /* too close to call */
+    return r[0].name;
   }
 
   var CHECK_MS = 1400, DONE_MS = 6000;
@@ -257,6 +299,9 @@ window.QLQ = (function () {
        collects in the library's custom-questions group */
     var topicOptional = !!opts.topicOptional;
     var topicErr = function () { return !st.topic && !topicOptional; };
+    /* a topic suggested from the wording: a starting point, not a decision */
+    var suggested = "";
+    if (opts.suggestTopic && !st.topic) { suggested = suggestTopic(st.text, opts.topics || []); if (suggested) st.topic = suggested; }
     var optsErr = function () { return hasOpts() && cleanOpts().length < 2; };
     var isPrimary = function () { return st.active === PRIMARY.code; };
     var trOf = function (code) { return st.tr[code] || {}; };
@@ -272,8 +317,9 @@ window.QLQ = (function () {
       '<p class="dialog-subtitle"></p>' +
       "</div>" +
       '<div class="dialog-body cq-body">' +
+      '<div class="cq-sim-mount"></div>' +
       '<div class="cq-selects">' +
-      '<div class="cq-field"><span class="cq-lbl">Topic <span class="cq-info" data-tt="Topics organise questions in your library. They don\'t affect benchmarks."><i data-icon="info"></i></span></span><div class="cq-topic-mount"></div><div class="cq-topic-err"></div></div>' +
+      '<div class="cq-field"><span class="cq-lbl">Topic <span class="cq-info" data-tt="Topics organise questions in your library. They don\'t affect benchmarks."><i data-icon="info"></i></span></span><div class="cq-topic-mount"></div><div class="cq-topic-hint" hidden></div><div class="cq-topic-err"></div></div>' +
       '<div class="cq-field"><span class="cq-lbl">Answer type</span><div class="cq-type-mount"></div></div>' +
       "</div>" +
       '<div class="cq-frame"><div class="cq-preview"></div><div class="cq-langs-mount"></div></div>' +
@@ -282,6 +328,19 @@ window.QLQ = (function () {
       "</div></div>"
     );
     document.body.appendChild(overlay);
+
+    /* review mode: the library may already have this question in other words —
+       said once, up top; the decision stays with the coordinator */
+    if (opts.review && opts.review.similar && opts.review.similar.length) {
+      var s0 = opts.review.similar[0];
+      overlay.querySelector(".cq-sim-mount").innerHTML =
+        '<div class="inline-notif is-info cq-sim" role="status">' +
+        '<img class="inline-notif-icon" src="assets/icons/notification-information.svg" alt="" />' +
+        '<div class="inline-notif-content"><span class="inline-notif-text">' +
+        '<span class="inline-notif-title">The library already has a similar question</span> ' +
+        '<span class="inline-notif-msg">“' + esc(window.QL ? QL.fill(s0.text) : s0.text) + "” · " + (s0.bench ? "Benchmarked" : "Custom") + ". You can still add this one.</span>" +
+        "</span></div></div>";
+    }
 
     function close() { QL.closeOverlay(overlay); timers.forEach(clearTimeout); clearTimeout(checkTimer); }
     overlay.querySelector(".dialog-close").addEventListener("click", close);
@@ -343,8 +402,10 @@ window.QLQ = (function () {
       value: st.topic || (topicOptional ? "" : undefined), placeholder: topicOptional ? "No topic" : "Topic name", items: topicItems, block: true,
       ariaLabel: "Topic",
       invalid: function () { return st.attempted && topicErr(); },
-      onChange: function (v) { st.topic = v; renderTopicErr(); if (editing) markDirty(); }
+      onChange: function (v) { st.topic = v; topicHint.hidden = true; renderTopicErr(); if (editing) markDirty(); }
     });
+    var topicHint = overlay.querySelector(".cq-topic-hint");
+    if (suggested) { topicHint.textContent = "Suggested from the wording"; topicHint.hidden = false; }
     if (standard) {
       /* the answer type of a benchmarked question is fixed — visibly disabled (CYOS BMQ) */
       overlay.querySelector(".cq-type-mount").innerHTML =
@@ -779,7 +840,7 @@ window.QLQ = (function () {
     /* ── save / delete (edit flow) — publishing pushes changes platform-wide ── */
     function saveEdit() {
       close();
-      QL.notify("Question updated", "Publish your changes to make them live in surveys.");
+      QL.notify("Question updated", QL.DRAFT_NOTE);
       opts.onSave({
         text: standard ? (st.variant || canonical) : st.text.trim(),
         desc: st.desc.trim(),
@@ -789,13 +850,13 @@ window.QLQ = (function () {
     function deleteQuestion() {
       QL.confirmDialog({
         icon: "error",
-        title: "Delete this question?",
-        subtitle: "It will be removed from your library. Surveys that already use it keep their own copy.",
-        confirmLabel: "Delete",
+        title: "Remove this question from the library?",
+        subtitle: "It stays in the surveys and templates that already use it. New surveys can't pick it from the library anymore.",
+        confirmLabel: "Remove",
         danger: true
       }, function () {
         close();
-        QL.notify("Question deleted");
+        if (!opts.quietDelete) QL.notify("Question removed from the library", "It stays in the surveys and templates that already use it.");
         opts.onDelete();
       });
     }
@@ -853,7 +914,7 @@ window.QLQ = (function () {
         var sb = f.querySelector("[data-primary]");
         if (dirty) sb.addEventListener("click", checkThenSubmit);
       } else if (editing) {
-        f.innerHTML = '<button class="btn btn-danger-tertiary" data-del><i data-icon="trash"></i>Delete question</button><span class="spacer"></span>' +
+        f.innerHTML = '<button class="btn btn-danger-tertiary" data-del><i data-icon="trash"></i>Remove from library</button><span class="spacer"></span>' +
           '<span class="cq-bench-note"><i data-icon="info"></i>Custom questions do not have a benchmark comparison in the results</span>' +
           '<button class="btn btn-secondary" data-cancel>Cancel</button>' +
           '<button class="btn btn-primary" data-primary>Save changes</button>';
@@ -910,7 +971,7 @@ window.QLQ = (function () {
        wording and translations, "Add to library" as the outcome */
     openReview: function (question, o) { return open(Object.assign({ mode: "edit", question: question }, o)); },
     QTYPES: QTYPES, FROM_QL: FROM_QL, TO_QL: TO_QL,
-    similar: similarQuestions,
+    similar: similarQuestions, similarScored: similarScored, topicScores: topicScores, suggestTopic: suggestTopic,
     previewHTML: previewHTML, typeTile: typeTile
   };
 })();

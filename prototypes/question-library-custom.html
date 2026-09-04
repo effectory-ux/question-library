@@ -106,7 +106,7 @@
         </div>
       </div>
 
-      <p class="text-medium ib-intro">Custom questions created in surveys across your organisation. Only their creators can use them until you add them to the library.</p>
+      <p class="text-medium ib-intro">Custom questions written in surveys across your organization. They already work where they were created. Add the ones worth sharing to the library, or leave them as they are.</p>
 
       <!-- Search, directly above the questions -->
       <div class="ql-toolbar">
@@ -140,6 +140,11 @@
   /* working copy, most-used first: usage is the promotion argument */
   var items = QL.inboxQuestions().slice().sort(function (a, b) { return (b.uses || 0) - (a.uses || 0); });
   var topicNames = QL.TOPICS.map(function (t) { return t.name; });
+  /* the library itself is the other thing a question can be similar to */
+  var libPool = [];
+  QL.TOPICS.forEach(function (t) { t.qs.forEach(function (q) { libPool.push({ text: QL.fill(q[0]), bench: true }); }); });
+  QL.libraryCustom().forEach(function (c) { libPool.push({ text: QL.fill(c.text), bench: false }); });
+  function libSimilar(q) { return QLQ.similar(QL.fill(q.text), libPool, 2, 0.5); }
   function short(t) { t = QL.fill(t); return t.length > 48 ? t.slice(0, 45) + "…" : t; }
   function uses(q) { if (q.where) return q.where; return (q.uses || 0) === 1 ? "Used in 1 survey" : "Used in " + (q.uses || 0) + " surveys"; }
 
@@ -169,14 +174,26 @@
         : clusters.length + " groups of questions look similar";
     }
 
+    var groupOf = {};
+    clusters.forEach(function (g, gi) { g.forEach(function (q) { groupOf[q.text] = gi; }); });
+
     var shown = items.filter(function (q) { return QL.matches(q.text, term); });
     listEl.innerHTML = shown.map(function (q) {
       var i = items.indexOf(q);
+      /* "similar to": the row says it, the banner only counts it */
+      var gi = groupOf[q.text], sim = [];
+      if (gi !== undefined) {
+        var others = clusters[gi].length - 1;
+        sim.push('<button class="ib-sim" data-group="' + gi + '">Similar to ' + others + (others === 1 ? " other question" : " other questions") + "</button>");
+      }
+      if (libSimilar(q).length) sim.push('<button class="ib-sim" data-promote="' + i + '">Similar to a library question</button>');
       return '<div class="q-row ib-row">' +
         '<div class="text-medium text-w500 q-text" style="flex:1;">' + QL.hl(q.text, term) +
-        '<span class="ib-meta text-w400">' + uses(q) + " · " + QL.esc(q.by) + " · Added " + QL.esc(q.added) + "</span></div>" +
+        '<span class="ib-meta text-w400">' + uses(q) + " · " + QL.esc(q.by) + " · Added " + QL.esc(q.added) +
+        (sim.length ? " · " + sim.join(" · ") : "") + "</span></div>" +
         QL.scaleChip(q.type) +
         '<button class="btn btn-secondary" data-promote="' + i + '">Review</button>' +
+        '<button class="ib ib-24 ib-tertiary" data-more="' + i + '" aria-label="More options" data-tt="More options"><i data-icon="more-vertical"></i></button>' +
         "</div>";
     }).join("");
     noResults.hidden = !term || !!shown.length;
@@ -185,6 +202,21 @@
     listEl.querySelectorAll("[data-promote]").forEach(function (b) {
       b.addEventListener("click", function () { promoteDialog(items[+b.getAttribute("data-promote")]); });
     });
+    listEl.querySelectorAll("[data-group]").forEach(function (b) {
+      b.addEventListener("click", function () { suggestDialog(+b.getAttribute("data-group")); });
+    });
+    /* the exit that isn't the library: leave the question where it is */
+    listEl.querySelectorAll("[data-more]").forEach(function (b) {
+      b.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var q = items[+b.getAttribute("data-more")];
+        QL.pickMenu(b, ["Keep out of the library"], -1, function () {
+          removeFromInbox([q.text]);
+          QL.notify("Kept out of the library", "It keeps working in the surveys that use it and won't show here again.");
+          render();
+        });
+      });
+    });
     if (window.Icons) window.Icons.render();
   }
 
@@ -192,20 +224,23 @@
   /* topics are optional: without one, the question lands in the library's
      Custom questions group at the bottom */
   var NO_TOPIC = "No topic";
-  function topicRow() {
+  function topicRow(forText) {
     var wrap = document.createElement("div");
     wrap.className = "slt-wrap cmb-topic";
+    /* suggested from the wording when possible — a starting point, changeable */
+    var val = forText ? QLQ.suggestTopic(forText, topicNames) : "";
     wrap.innerHTML = '<div class="slt-lbl">Add to topic</div>' +
       '<div class="slt" tabindex="0" role="button" aria-haspopup="listbox">' +
-      '<span class="slt-left"><span class="slt-val">' + NO_TOPIC + "</span></span>" +
-      '<i data-icon="chevron-down"></i></div>';
+      '<span class="slt-left"><span class="slt-val">' + QL.esc(val || NO_TOPIC) + "</span></span>" +
+      '<i data-icon="chevron-down"></i></div>' +
+      (val ? '<div class="cq-topic-hint">Suggested from the wording</div>' : "");
     var options = [NO_TOPIC].concat(topicNames);
-    var val = "";
     var slt = wrap.querySelector(".slt");
     slt.addEventListener("click", function () {
       QL.pickMenu(slt, options, val ? options.indexOf(val) : 0, function (i) {
         val = i === 0 ? "" : options[i];
         wrap.querySelector(".slt-val").textContent = options[i];
+        var h = wrap.querySelector(".cq-topic-hint"); if (h) h.remove();
       });
     });
     return { el: wrap, value: function () { return val; } };
@@ -214,8 +249,7 @@
   function removeFromInbox(texts) {
     QL.inboxRemove(texts);
     items = items.filter(function (q) { return texts.indexOf(q.text) === -1; });
-    var tab = document.getElementById("tabInbox");
-    if (tab) tab.textContent = "To review (" + items.length + ")";
+    QL.refreshInboxTab();
   }
 
   /* ── review a question and add it to the library: the question settings
@@ -224,15 +258,15 @@
     QLQ.openReview(
       { text: q.text, type: q.type, topic: "", usedIn: [] },
       {
-        standard: false, topics: topicNames, topicOptional: true, pool: [],
-        review: { uses: q.uses || 0, by: q.by },
+        standard: false, topics: topicNames, topicOptional: true, pool: [], suggestTopic: true,
+        review: { uses: q.uses || 0, by: q.by, similar: libSimilar(q) },
         onConfirm: function (u) {
           QL.libAdd({ text: u.text, type: u.type, topic: u.topic || "", added: "Today", usedIn: [] });
           removeFromInbox([q.text]);
-          QL.trackChange("Added “" + short(u.text) + "” to the library");
+          QL.trackChange("Added “" + short(u.text) + "” to the library", { q: u.text });
           QL.notify("Question added to the library",
             (u.topic ? "Find it under " + u.topic + "." : "Find it under Custom questions at the bottom of the list.") +
-            " Publish to make it available to everyone.");
+            " Survey creators will see it once you publish.");
           render();
         }
       }
@@ -270,10 +304,10 @@
     }); });
     setTimeout(function () { box.remove(); }, 900);
   }
-  function suggestDialog() {
+  function suggestDialog(startAt) {
     var groups = findClusters();
     if (!groups.length) return;
-    var idx = 0, combined = 0, keptGroups = 0;
+    var idx = typeof startAt === "number" && startAt < groups.length ? startAt : 0, combined = 0, keptGroups = 0;
     var overlay = QL.openOverlay(
       '<div class="overlay"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="sg-title" style="width: min(640px, calc(100vw - 32px));">' +
       '<button class="dialog-close" aria-label="Close" data-close><i data-icon="cross"></i></button>' +
@@ -334,7 +368,7 @@
       overlay.querySelector("#sgCount").textContent = "Suggestion " + (idx + 1) + " of " + groups.length;
       renderOpts();
       topicMount.innerHTML = "";
-      topic = topicRow();
+      topic = topicRow(groups[idx][0].text);
       topicMount.appendChild(topic.el);
       if (window.Icons) window.Icons.render();
     }
@@ -350,10 +384,10 @@
       if (combined && keptGroups) {
         QL.notify("Suggestions reviewed",
           combined + (combined === 1 ? " question" : " questions") + " added to the library with variants, " +
-          keptGroups + (keptGroups === 1 ? " group" : " groups") + " kept separate. Publish to make the new questions available to everyone.");
+          keptGroups + (keptGroups === 1 ? " group" : " groups") + " kept separate. Survey creators will see the new questions once you publish.");
       } else if (combined) {
         QL.notify(combined === 1 ? "1 question added to the library" : combined + " questions added to the library",
-          "Each one combines the similar wordings as variants. Publish to make them available to everyone.");
+          "Each one combines the similar wordings as variants. Survey creators will see them once you publish.");
       } else if (keptGroups) {
         QL.notify("Suggestions reviewed", "You kept the questions separate. They stay in this list.");
       }
@@ -410,7 +444,7 @@
       var variants = group.filter(function (q) { return q !== main; }).map(function (q) { return q.text; });
       QL.libAdd({ text: main.text, type: main.type, topic: topic.value(), added: "Today", usedIn: [], variants: variants });
       removeFromInbox(group.map(function (q) { return q.text; }));
-      QL.trackChange("Combined " + group.length + " questions into “" + short(main.text) + "”");
+      QL.trackChange("Combined " + group.length + " questions into “" + short(main.text) + "”", { q: main.text });
       combined++;
       animateCombine(next);
     });

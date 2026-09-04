@@ -171,6 +171,7 @@
         return '<div class="q-row" data-t="' + ti + '" data-q="' + qi + '">' +
           '<div class="text-medium text-w500 q-text" style="flex:1;">' + QL.hl(q.text, term) + "</div>" +
           vChip +
+          (QL.pendingFor(q.text).length ? QL.draftTag() : "") +
           (q.custom ? '<span class="tag tag-info">Custom</span>' : '<span class="tag is-standard">Benchmarked</span>') +
           QL.scaleChip(q.type) +
           '<button class="ib ib-24 ib-tertiary" data-menu aria-label="More options" data-tt="More options"><i data-icon="more-vertical"></i></button>' +
@@ -183,6 +184,7 @@
       return '<div class="q-topic">' +
         '<div class="q-head"><h2 class="text-l5">' + QL.esc(topic.name) + "</h2>" +
         '<span class="q-count">' + shownCount + "</span>" +
+        (QL.pendingTopic(topic.name).length ? QL.draftTag() : "") +
         (topic.custom ? '<button class="ib ib-24 ib-tertiary" data-rename="' + ti + '" aria-label="Rename topic" data-tt="Rename topic"><i data-icon="edit"></i></button>' : "") +
         "</div>" +
         '<div class="q-list">' + rows + "</div></div>";
@@ -234,14 +236,25 @@
             if ((u.topic || "") !== current) {
               moveToTopic(topic, q, u.topic || PILE, true);
             } else {
-              QL.trackChange("Edited “" + short(q.text) + "”");
+              QL.trackChange("Edited “" + short(q.text) + "”", { q: q.text });
             }
             render();
           },
+          /* removal is a draft change like any other — and undoable from the toast */
+          quietDelete: true,
           onDelete: function () {
-            topic.qs.splice(topic.qs.indexOf(q), 1);
-            QL.trackChange("Deleted “" + short(q.text) + "”");
+            var at = topic.qs.indexOf(q);
+            topic.qs.splice(at, 1);
+            QL.trackChange("Removed “" + short(q.text) + "” from the library", { q: q.text });
             render();
+            QL.notify("Question removed from the library", "It stays in the surveys and templates that already use it.", {
+              label: "Undo",
+              onClick: function () {
+                topic.qs.splice(Math.min(at, topic.qs.length), 0, q);
+                QL.dropChange(function (c) { return c && c.meta && c.meta.q === q.text && /^Removed/.test(c.label); });
+                render();
+              }
+            });
           },
           onAdd: addQuestion
         }
@@ -254,7 +267,7 @@
           standard: true, topics: [topic.name], pool: [],
           onSave: function (u) {
             q.text = u.text;
-            QL.trackChange("Selected alternative wording for “" + short(q.text) + "”");
+            QL.trackChange("Selected alternative wording for “" + short(q.text) + "”", { q: q.text });
             render();
           },
           /* rewriting freely creates a custom question in the same library */
@@ -270,8 +283,8 @@
     if (!dest || dest === from) return;
     from.qs.splice(from.qs.indexOf(q), 1);
     dest.qs.push(q);
-    QL.trackChange("Moved “" + short(q.text) + "” to " + destName);
-    if (!silent) QL.notify("Question moved to " + destName, "Publish your changes to make it live in surveys.");
+    QL.trackChange("Moved “" + short(q.text) + "” to " + destName, { q: q.text });
+    if (!silent) QL.notify("Question moved to " + destName, QL.DRAFT_NOTE);
   }
 
   /* ── the row kebab: settings for every question; custom questions can also
@@ -336,12 +349,12 @@
       else if (act === "up") {
         closeRowMenus();
         topic.qs.splice(qi, 1); topic.qs.splice(qi - 1, 0, q);
-        QL.trackChange("Reordered in " + topic.name);
+        QL.trackChange("Reordered in " + topic.name, { q: q.text });
         render();
       } else if (act === "down") {
         closeRowMenus();
         topic.qs.splice(qi, 1); topic.qs.splice(qi + 1, 0, q);
-        QL.trackChange("Reordered in " + topic.name);
+        QL.trackChange("Reordered in " + topic.name, { q: q.text });
         render();
       } else if (act === "topic") {
         /* nested menu: pick the destination topic */
@@ -379,7 +392,7 @@
     var obj = { text: nq.text, type: nq.type, custom: true, variants: [] };
     t.qs.push(obj);
     QL.libAdd({ text: nq.text, type: nq.type, topic: t.pile ? "" : t.name, added: "Today", usedIn: [] });
-    QL.trackChange("Added “" + short(nq.text) + "” to " + t.name);
+    QL.trackChange("Added “" + short(nq.text) + "” to " + t.name, { q: nq.text });
     render();
     return obj;
   }
@@ -410,8 +423,8 @@
       topics.push({ name: name, custom: true, qs: [] });
       pileLast();
       QL.closeOverlay(overlay);
-      QL.trackChange("Added topic “" + name + "”");
-      QL.notify("Topic added", "Publish your changes to make it live in surveys.");
+      QL.trackChange("Added topic “" + name + "”", { topicNew: name });
+      QL.notify("Topic added", QL.DRAFT_NOTE);
       render();
     });
   }
@@ -438,6 +451,8 @@
   });
 
   render();
+  /* publishing clears the Unpublished tags */
+  document.addEventListener("ql:published", render);
 
   /* deep link from the toolbar's Screens: open a dialog on arrival */
   if (new URLSearchParams(location.search).get("open") === "add-question") setTimeout(addQuestionDialog, 80);

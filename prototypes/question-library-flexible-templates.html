@@ -31,6 +31,12 @@
     .tpl-count { flex: none; font-size: 14px; color: var(--content-secondary); }
     .tpl-row .tag { flex: none; }
     .tpl-row .ib { flex: none; }
+    /* Effectory's templates and the organization's own, as two sections */
+    .tpl-sections { display: flex; flex-direction: column; gap: var(--spacing-loose); }
+    .tpl-sec-head { display: flex; align-items: center; gap: var(--spacing-tight); margin: 0 0 var(--spacing-base-tight); }
+    .tpl-sec-head h2 { margin: 0; }
+    .tpl-sec-count { font-size: 12px; line-height: 20px; padding: 0 8px; border-radius: var(--radius-full); background: var(--bg-secondary); color: var(--content-secondary); }
+    .tpl-empty { margin: 0; color: var(--content-secondary); }
   </style>
 </head>
 <body data-page="templates" data-variant="flexible">
@@ -105,7 +111,7 @@
       </div>
 
       <!-- Templates -->
-      <div class="card card-outlined tpl-card" id="tplList"></div>
+      <div class="tpl-sections" id="tplList"></div>
       <p class="text-medium" id="noResults" hidden style="color: var(--content-secondary); margin: 0;">No templates match your search.</p>
 
     </div>
@@ -128,18 +134,29 @@
       (t.img
         ? '<span class="tpl-img"><img src="assets/illustrations/templates/' + t.img + '.svg" alt="" /></span>'
         : '<span class="tpl-img is-doc"><i data-icon="clipboard-note"></i></span>') +
-      '<span class="tpl-name"><span class="text-l5">' + QL.esc(t.name) + '</span><span class="tpl-kind">' + (t.custom ? "Custom template" : "Standard template") + "</span></span>" +
+      '<span class="tpl-name"><span class="text-l5">' + QL.esc(t.name) + '</span><span class="tpl-kind">' + (t.custom ? "Created by " + QL.esc(t.by || "you") : "Maintained by Effectory") + "</span></span>" +
       '<span class="tpl-count">' + count + (count === 1 ? " question" : " questions") + "</span>" +
       QL.tplStatusTag(t) +
       '<button class="ib ib-24 ib-tertiary" data-kebab aria-label="More options" data-tt="More options"><i data-icon="more-vertical"></i></button>' +
       "</div>";
   }
 
+  function sectionHTML(title, rows, empty) {
+    return '<div class="tpl-section"><div class="tpl-sec-head"><h2 class="text-l5">' + title + '</h2><span class="tpl-sec-count">' + rows.length + "</span></div>" +
+      (rows.length
+        ? '<div class="card card-outlined tpl-card">' + rows.map(rowHTML).join("") + "</div>"
+        : '<p class="text-medium tpl-empty">' + empty + "</p>") +
+      "</div>";
+  }
   function render() {
     var shown = QL.allTemplates().filter(function (t) {
       return !term || t.name.toLowerCase().indexOf(term.toLowerCase()) !== -1;
     });
-    listEl.innerHTML = shown.map(rowHTML).join("");
+    var std = shown.filter(function (t) { return !t.custom; }), org = shown.filter(function (t) { return t.custom; });
+    listEl.innerHTML =
+      (term && !std.length ? "" : sectionHTML("Effectory templates", std, "")) +
+      (term && !org.length ? "" : sectionHTML("Your organization's templates", org,
+        "No templates from your organization yet. Create one, or duplicate an Effectory template and adjust it."));
     listEl.hidden = !shown.length;
     noResults.hidden = !!shown.length;
     listEl.querySelectorAll(".tpl-row").forEach(function (row) {
