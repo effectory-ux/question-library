@@ -32,7 +32,7 @@
       function open(name, what) { return function (u) { return file(u) === screen(name)(u) && u.searchParams.get("open") === what; }; }
       function plain(name) { return function (u) { return file(u) === screen(name)(u) && !u.searchParams.get("open"); }; }
       return [
-        { key: "questions", group: "Questions", label: "Questions", href: screen("questions"), match: plain("questions"),
+        { key: "questions", group: "Questions", label: "Questions", href: screen("questions"), match: plain("questions"), default: true,
           desc: "The library: benchmarked and custom questions in one governed list." },
         { key: "add-question", group: "Questions", label: "Add a question", href: function (u) { return screen("questions")(u) + "?open=add-question"; }, match: open("questions", "add-question"),
           desc: "Dialog: write a custom question for the library." },
