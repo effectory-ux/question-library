@@ -962,7 +962,8 @@ window.QLQ = (function () {
     if (opts.focusTitle || !editing) {
       setTimeout(function () {
         var elq = overlay.querySelector(".cq-qfield");
-        if (elq && !standard) { elq.focus(); if (opts.focusTitle) elq.select(); }
+        /* preventScroll: focusing must not scroll the dialog's own box and push the header up */
+        if (elq && !standard) { try { elq.focus({ preventScroll: true }); } catch (e) { elq.focus(); } if (opts.focusTitle) elq.select(); }
       }, 80);
     }
     return { close: close };
