@@ -35,6 +35,7 @@
     .ai-title { margin: 0; font-size: 20px; font-weight: 600; line-height: 28px; color: var(--content-info-secondary); }
     .ai-head-right { display: flex; align-items: center; gap: var(--spacing-extra-tight); }
     .ai-intro { margin: 0; font-size: 14px; line-height: 1.6; color: var(--content-secondary); }
+    .ai-intro b { font-weight: 600; color: var(--content-base); }
     .ai-more { display: none; }
     .ai-summary.is-open .ai-more { display: block; }
     .ai-sec { margin-top: var(--spacing-loose); }
@@ -211,13 +212,15 @@
     var top = topicCounts().filter(function (t) { return t.n >= 2; }).slice(0, 2);
     var classified = top.reduce(function (sum, t) { return sum + t.n; }, 0);
     var rest = items.length - classified;
+    /* the intro is HTML: the highlights are bold, the rest is escaped text */
+    var b = function (t) { return "<b>" + QL.esc(t) + "</b>"; };
     var intro = "People wrote " + plural(items.length, "custom question", "custom questions") + " in their surveys so far.";
     if (top.length) {
-      intro += " Most are about " + joinAnd(top.map(function (t) { return t.name + " (" + t.n + ")"; })) + ".";
+      intro += " Most are about " + joinAnd(top.map(function (t) { return b(t.name + " (" + t.n + ")"); })) + ".";
       var covered = top.filter(function (t) { return t.lib; });
-      if (covered.length) intro += " The library already has " + joinAnd(covered.map(function (t) { return plural(t.lib, "standard question", "standard questions") + " on " + t.name; })) + ", so survey creators may not be finding them.";
+      if (covered.length) intro += " The library already has " + joinAnd(covered.map(function (t) { return plural(t.lib, "standard question", "standard questions") + " on " + QL.esc(t.name); })) + ", so " + b("survey creators may not be finding them") + ".";
     }
-    if (clusters.length) intro += " " + plural(clusters.length, "group asks", "groups ask") + " the same thing in different words.";
+    if (clusters.length) intro += " " + b(plural(clusters.length, "group asks", "groups ask") + " the same thing in different words") + ".";
     if (rest > 0 && top.length) intro += " The other " + rest + " are one-offs about local matters.";
     var steps = [];
     if (clusters.length) steps.push("Review the " + plural(clusters.length, "group", "groups") + " of similar wordings and combine each into one library question with variants.");
@@ -232,7 +235,7 @@
       '<button class="ib ib-36 ib-tertiary" id="aiHide" aria-label="Hide summary" data-tt="Hide summary"><i data-icon="eye-off"></i></button>' +
       '<button class="ib ib-36 ib-tertiary" aria-label="About this summary" data-tt="Written from the questions in this list: what they are about, what the library already covers, and which ones say the same thing"><i data-icon="info"></i></button>' +
       "</div></div>" +
-      '<p class="ai-intro">' + QL.esc(intro) + "</p>" +
+      '<p class="ai-intro">' + intro + "</p>" +
       '<div class="ai-more">' +
       (steps.length ? '<div class="ai-sec"><h4 class="ai-sec-title">Suggested next steps</h4><ul class="ai-list">' + steps.map(function (t) { return "<li>" + QL.esc(t) + "</li>"; }).join("") + "</ul></div>" : "") +
       (clusters.length ? '<div class="ai-actions"><button class="btn btn-secondary" id="btnSuggest">Review similar questions</button></div>' : "") +
@@ -273,9 +276,9 @@
         html.push('<div class="q-row ib-row is-stack" data-group="' + gi + '">' +
           '<span class="ib-stack-tile"><i data-icon="copy"></i></span>' +
           '<div class="text-medium text-w500 q-text" style="flex:1;"><span class="ib-title-row">' + QL.hl(main.text, term) +
-          '<span class="tag tag-brand">' + plural(g.length, "wording", "wordings") + "</span></span>" +
-          '<span class="ib-meta text-w400">' + (useSum === 1 ? "Used in 1 survey" : "Used in " + useSum + " surveys") + " · " + plural(Object.keys(people).length, "person", "people") +
-          " · " + g.slice(1).map(function (x) { return "“" + QL.esc(short(x.text)) + "”"; }).join(", ") + "</span></div>" +
+          '<span class="tag tag-brand">' + plural(g.length, "similar question", "similar questions") + "</span></span>" +
+          '<span class="ib-meta text-w400">' + (useSum === 1 ? "Used in 1 survey" : "Used in " + useSum + " surveys") + " · " + plural(Object.keys(people).length, "person", "people") + "</span>" +
+          '<span class="ib-meta text-w400">Also asked as ' + joinAnd(g.slice(1).map(function (x) { return "“" + QL.esc(short(x.text)) + "”"; })) + "</span></div>" +
           QL.scaleChip(main.type) +
           '<button class="btn btn-secondary" data-review-group="' + gi + '">Review</button>' +
           '<button class="ib ib-24 ib-tertiary" data-more-group="' + gi + '" aria-label="More options" data-tt="More options"><i data-icon="more-vertical"></i></button>' +
