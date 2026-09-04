@@ -34,6 +34,8 @@
       return [
         { key: "questions", group: "Questions", label: "Questions", href: screen("questions"), match: plain("questions"), default: true,
           desc: "The library: benchmarked and custom questions in one governed list." },
+        { key: "history", group: "Questions", label: "Version history", href: function (u) { return screen("questions")(u) + "?open=history"; }, match: open("questions", "history"),
+          desc: "Side panel: every publish as a version, the draft on top." },
         { key: "add-question", group: "Questions", label: "Add a question", href: function (u) { return screen("questions")(u) + "?open=add-question"; }, match: open("questions", "add-question"),
           desc: "Dialog: write a custom question for the library." },
         { key: "custom", group: "To review", label: "To review", href: "question-library-custom.html", match: function (u) { return file(u) === "question-library-custom.html" && !u.searchParams.get("open"); },

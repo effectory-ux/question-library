@@ -218,6 +218,7 @@
       '<span class="info" data-tt="' + (t.custom ? "Custom template" : "Standard template") + ' · ' + count() + ' questions"><i data-icon="info"></i></span>' +
       QL.tplStatusTag(QL.getTemplate(slug) || t) +
       /* one publish for everything: template changes go through the same dialog */
+      '<button class="ib ib-36 ib-secondary" id="btnHistory" aria-label="Version history" data-tt="Version history"><i data-icon="version-history"></i></button>' +
       '<button class="btn btn-primary" id="btnPublish"><i data-icon="send"></i> Publish</button>' +
       '<button class="ib ib-36 ib-tertiary" id="tplKebab" aria-label="More options" data-tt="More options"><i data-icon="more-vertical"></i></button>';
     QL.initPublish();

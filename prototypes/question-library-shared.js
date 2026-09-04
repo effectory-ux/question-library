@@ -9,7 +9,13 @@ window.QL = (function () {
     var s = document.createElement("style");
     s.textContent =
       ".sysnotif-action{background:none;border:0;padding:0;font:inherit;font-size:14px;font-weight:500;line-height:1.6;color:var(--content-inverse);text-decoration:underline;cursor:pointer}" +
-      ".ib-sim{background:none;border:0;padding:0;font:inherit;font-size:inherit;color:var(--content-brand);cursor:pointer}.ib-sim:hover{text-decoration:underline}";
+      ".ib-sim{background:none;border:0;padding:0;font:inherit;font-size:inherit;color:var(--content-brand);cursor:pointer}.ib-sim:hover{text-decoration:underline}" +
+      ".vh-body{display:flex;flex-direction:column;gap:var(--spacing-loose);font-size:14px}" +
+      ".vh-entry{padding-bottom:var(--spacing-loose);border-bottom:1px solid var(--border-base)}.vh-entry:last-child{border-bottom:0;padding-bottom:0}" +
+      ".vh-head{display:flex;align-items:center;gap:var(--spacing-tight);flex-wrap:wrap;margin-bottom:var(--spacing-tight)}" +
+      ".vh-title{margin:0;color:var(--content-base)}.vh-meta{font-size:12px;color:var(--content-secondary)}" +
+      ".vh-list{margin:0;padding-left:var(--spacing-base);display:flex;flex-direction:column;gap:var(--spacing-extra-tight);color:var(--content-secondary);line-height:1.6}" +
+      ".sp-actions [data-tt]{display:flex}";
     document.head.appendChild(s);
   })();
 
@@ -679,14 +685,59 @@ window.QL = (function () {
   /* publish log: every publish is a bookmark in time (Figma library versions,
      Qualtrics reference surveys) — the smallest useful audit trail */
   var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  var SEED_LOG = [
+    { date: "2 Apr 2026", by: "Effectory", count: 3, changes: [
+      "Added 3 standard questions to Wellbeing and workload",
+      "Added an alternative wording for “I can decide how to do my work”",
+      "Updated the Team Development Scan template"] },
+    { date: "8 Apr 2026", by: "Linda Bakker", count: 1, changes: [
+      "Added “The new expense tool saves me time” to Work enablement"] },
+    { date: "12 May 2026", by: "Linda Bakker", count: 2, changes: [
+      "Added “I feel well informed about our office move to Utrecht” to Company culture",
+      "Selected alternative wording for “I enjoy doing my work / tasks”"] },
+    { date: "28 Aug 2026", by: "Linda Bakker", count: 3, changes: [
+      "Combined 2 questions into “I feel well informed about our office move to Utrecht”",
+      "Removed “Our Friday drinks are well organized” from the library",
+      "Template “Onboarding” · description updated"] }
+  ];
   function publishLog() {
     try { var l = JSON.parse(localStorage.getItem("ql.publishLog") || "null"); if (l && l.length) return l; } catch (e) {}
-    return [{ date: "28 Aug 2026", by: "Linda Bakker", count: 6 }];
+    return SEED_LOG;
   }
-  function logPublish(count) {
-    var d = new Date(), l = publishLog();
-    l.push({ date: d.getDate() + " " + MONTHS[d.getMonth()] + " " + d.getFullYear(), by: "you", count: count });
+  function logPublish(done) {
+    var d = new Date(), l = publishLog().slice();
+    l.push({ date: d.getDate() + " " + MONTHS[d.getMonth()] + " " + d.getFullYear(), by: "you", count: done.length, changes: done.map(changeLabel) });
     try { localStorage.setItem("ql.publishLog", JSON.stringify(l)); } catch (e) {}
+  }
+  /* ── version history: every publish as a version, newest first, the draft
+     on top when there is one — the default (800px) DS side panel ── */
+  function historyPanel() {
+    var log = publishLog().slice().reverse(), pending = changesList();
+    function entry(title, tag, meta, labels) {
+      return '<section class="vh-entry"><div class="vh-head"><h4 class="text-l5 vh-title">' + esc(title) + "</h4>" + (tag || "") +
+        '<span class="vh-meta">' + esc(meta) + "</span></div>" +
+        (labels.length ? '<ul class="vh-list">' + labels.map(function (l) { return "<li>" + esc(l) + "</li>"; }).join("") + "</ul>" : "") +
+        "</section>";
+    }
+    var html = "";
+    if (pending.length) {
+      html += entry("Not published yet", '<span class="tag tag-warning">Draft</span>',
+        pending.length + (pending.length === 1 ? " change, saved" : " changes, saved") + " · Publish to make them a version", pending.map(changeLabel));
+    }
+    html += log.map(function (e, i) {
+      return entry(e.date, i === 0 ? '<span class="tag tag-positive">Current</span>' : "",
+        "Published by " + e.by + " · " + e.count + (e.count === 1 ? " change" : " changes"), e.changes || []);
+    }).join("");
+    openOverlay(
+      '<div class="overlay is-right"><div class="sidepanel" role="dialog" aria-modal="true" aria-labelledby="vh-title">' +
+      '<div class="sp-header"><div class="sp-toolbar"><div class="sp-actions">' +
+      '<i data-icon="cross" data-close role="button" tabindex="0" aria-label="Close" data-tt="Close"></i></div></div>' +
+      '<div class="sp-heading"><h3 class="sp-title" id="vh-title">Version history</h3>' +
+      '<p class="sp-subtitle">Every publish is a version. Survey creators always work with the latest one.</p></div></div>' +
+      '<div class="sp-body vh-body">' + html + "</div>" +
+      '<div class="sp-footer"><button class="btn btn-secondary" data-close>Close</button></div>' +
+      "</div></div>"
+    );
   }
   function lastPublished() {
     var l = publishLog(), e = l[l.length - 1];
@@ -804,7 +855,7 @@ window.QL = (function () {
         if (c && c.meta && c.meta.tpl && c.meta.kind === "create") setTplStatus(c.meta.tpl, "published");
       });
       /* pages showing a status derived from the change list re-render on this */
-      logPublish(published);
+      logPublish(done);
       document.dispatchEvent(new CustomEvent("ql:published", { detail: { published: done, kept: keep } }));
       updatePublish();
       closeOverlay(overlay);
@@ -819,6 +870,8 @@ window.QL = (function () {
     if (!b) return;
     updatePublish();
     b.addEventListener("click", publishDialog);
+    var h = document.getElementById("btnHistory");
+    if (h) h.addEventListener("click", historyPanel);
   }
 
   /* ── fixed-layer tooltip on [data-tt] (reference-doc pattern: never clipped) ── */
@@ -1237,6 +1290,8 @@ window.QL = (function () {
     initLang();
     updatePublish();
     refreshInboxTab();
+    /* deep link from the toolbar's Screens: the version history on arrival */
+    try { if (new URLSearchParams(location.search).get("open") === "history") setTimeout(historyPanel, 120); } catch (e) {}
   }
   function initShell() {
     var learn = document.getElementById("btnLearnMore");
@@ -1370,6 +1425,7 @@ window.QL = (function () {
   }
 
   return {
+    historyPanel: historyPanel,
     go: go,
     pendingFor: pendingFor, pendingTopic: pendingTopic, dropChange: dropChange, draftTag: draftTag, DRAFT_NOTE: DRAFT_NOTE,
     refreshInboxTab: refreshInboxTab, lastPublished: lastPublished,
