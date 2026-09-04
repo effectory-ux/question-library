@@ -19,6 +19,12 @@
   <style>
     /* incoming questions: custom questions created in surveys, waiting for curation */
     .ib-intro { margin: 0 0 var(--spacing-base); color: var(--content-secondary); }
+    .ib-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--spacing-base); margin-bottom: var(--spacing-base); }
+    .ib-cards .card-body { flex: 1; }
+    .ib-card-head { display: flex; align-items: center; gap: var(--spacing-tight); }
+    .ib-card-icon { flex: none; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: var(--radius-full); background: var(--bg-brand-subtle); color: var(--content-brand); }
+    .ib-card-icon i { display: flex; width: 18px; height: 18px; }
+    .ib-filter-note { display: flex; align-items: center; gap: var(--spacing-tight); margin: 0 0 var(--spacing-base-tight); color: var(--content-secondary); }
     .ib-meta { display: block; margin-top: var(--spacing-extra-tight); font-size: 12px; color: var(--content-secondary); }
     .ib-row .btn { flex: none; }
     /* suggestion stepper: pick the main wording, one group at a time */
@@ -93,18 +99,9 @@
         <div class="ph-divider"></div>
       </div>
 
-      <!-- Similar-question suggestions: a banner that opens the step-through review -->
-      <div class="inline-notif is-info is-one-liner" id="simNotif" role="status" hidden>
-        <img class="inline-notif-icon" src="assets/icons/notification-information.svg" alt="" />
-        <div class="inline-notif-content">
-          <span class="inline-notif-text">
-            <span class="inline-notif-title" id="simTitle"></span>
-          </span>
-          <div class="inline-notif-actions">
-            <button class="btn btn-secondary" id="btnSuggest">Review suggestions</button>
-          </div>
-        </div>
-      </div>
+      <!-- What stands out in this list: up to two cards (DS card, outlined, small).
+           Similar wordings open the step-through; a dominant topic filters the list. -->
+      <div class="ib-cards" id="ibCards" hidden></div>
 
       <p class="text-medium ib-intro">Custom questions written in surveys across your organization. They already work where they were created. Add the ones worth sharing to the library, or leave them as they are.</p>
 
@@ -118,6 +115,7 @@
 
       <!-- The incoming list -->
       <div class="q-topic">
+        <p class="text-medium ib-filter-note" id="ibFilterNote" hidden></p>
         <div class="q-list" id="inboxList"></div>
         <p class="text-medium" id="noResults" hidden style="color: var(--content-secondary); margin: var(--spacing-base-tight) 0 0;">No questions match your search.</p>
         <p class="text-medium" id="emptyInbox" hidden style="color: var(--content-secondary); margin: var(--spacing-base-tight) 0 0;">No new questions from surveys. Questions people create in their surveys show up here.</p>
@@ -135,6 +133,7 @@
   var noResults = document.getElementById("noResults");
   var emptyInbox = document.getElementById("emptyInbox");
   var term = "";
+  var topicFilter = ""; // set from the "most questions are about" card
   var dismissed = {}; // "keep separate" choices, per visit
 
   /* working copy, most-used first: usage is the promotion argument */
@@ -163,21 +162,78 @@
     return out;
   }
 
-  function render() {
-    /* the suggestions live behind a banner: the list itself stays complete */
-    var clusters = findClusters();
-    var simNotif = document.getElementById("simNotif");
-    simNotif.hidden = !clusters.length;
+  /* ── what the list is about: each question's most likely topic (looser than
+     the suggestion in the dialog — for counting, not for deciding) ── */
+  function patternTopic(q) {
+    var r = QLQ.topicScores(q.text, topicNames);
+    if (!r.length || r[0].score < 0.3) return "";
+    if (r.length > 1 && r[1].score > r[0].score * 0.8) return "";
+    return r[0].name;
+  }
+  function dominantTopic() {
+    var counts = {};
+    items.forEach(function (q) { var t = patternTopic(q); if (t) counts[t] = (counts[t] || 0) + 1; });
+    var best = "";
+    Object.keys(counts).forEach(function (t) { if (!best || counts[t] > counts[best]) best = t; });
+    return best && counts[best] >= 3 ? { name: best, count: counts[best] } : null;
+  }
+  function libraryCount(topicName) {
+    var t = QL.TOPICS.filter(function (x) { return x.name === topicName; })[0];
+    return (t ? t.qs.length : 0) + QL.libraryCustom().filter(function (c) { return c.topic === topicName; }).length;
+  }
+
+  /* ── the cards: zero, one or two, depending on what stands out ── */
+  function card(icon, title, text, action) {
+    return '<div class="card card-outlined is-sm ib-card"><div class="card-body">' +
+      '<div class="ib-card-head"><span class="ib-card-icon"><i data-icon="' + icon + '"></i></span><span class="card-title">' + title + "</span></div>" +
+      '<div class="card-text">' + text + "</div></div>" +
+      '<div class="card-actions">' + action + "</div></div>";
+  }
+  function renderCards(clusters) {
+    var cardsEl = document.getElementById("ibCards");
+    var html = "";
     if (clusters.length) {
-      document.getElementById("simTitle").textContent = clusters.length === 1
-        ? "1 group of questions looks similar"
-        : clusters.length + " groups of questions look similar";
+      html += card("copy",
+        clusters.length === 1 ? "1 group of questions looks similar" : clusters.length + " groups of questions look similar",
+        "Combine each group into one library question with variants, or keep them separate.",
+        '<button class="btn btn-secondary" id="btnSuggest">Review suggestions</button>');
     }
+    var dom = dominantTopic();
+    if (dom) {
+      var k = libraryCount(dom.name);
+      html += card("lightbulb",
+        "Most new questions are about " + QL.esc(dom.name),
+        dom.count + " of " + items.length + " questions here are about it. " +
+        (k ? "The library already has " + k + (k === 1 ? " question" : " questions") + " on this topic." : "The library has no questions on this topic yet."),
+        '<button class="btn btn-secondary" id="btnTopicFilter">' + (topicFilter ? "Show all questions" : "Show these questions") + "</button>");
+    }
+    cardsEl.innerHTML = html;
+    cardsEl.hidden = !html;
+    var bs = document.getElementById("btnSuggest");
+    if (bs) bs.addEventListener("click", function () { suggestDialog(); });
+    var bt = document.getElementById("btnTopicFilter");
+    if (bt) bt.addEventListener("click", function () { topicFilter = topicFilter ? "" : dom.name; render(); });
+    /* the filter, named above the list, with the way back */
+    var note = document.getElementById("ibFilterNote");
+    if (topicFilter) {
+      var n = items.filter(function (q) { return patternTopic(q) === topicFilter; }).length;
+      note.innerHTML = "Showing " + n + (n === 1 ? " question" : " questions") + " about " + QL.esc(topicFilter) +
+        ' <button class="btn btn-tertiary" id="btnShowAll">Show all</button>';
+      note.hidden = false;
+      document.getElementById("btnShowAll").addEventListener("click", function () { topicFilter = ""; render(); });
+    } else {
+      note.hidden = true;
+    }
+  }
+
+  function render() {
+    var clusters = findClusters();
+    renderCards(clusters);
 
     var groupOf = {};
     clusters.forEach(function (g, gi) { g.forEach(function (q) { groupOf[q.text] = gi; }); });
 
-    var shown = items.filter(function (q) { return QL.matches(q.text, term); });
+    var shown = items.filter(function (q) { return QL.matches(q.text, term) && (!topicFilter || patternTopic(q) === topicFilter); });
     listEl.innerHTML = shown.map(function (q) {
       var i = items.indexOf(q);
       /* "similar to": the row says it, the banner only counts it */
@@ -196,7 +252,7 @@
         '<button class="ib ib-24 ib-tertiary" data-more="' + i + '" aria-label="More options" data-tt="More options"><i data-icon="more-vertical"></i></button>' +
         "</div>";
     }).join("");
-    noResults.hidden = !term || !!shown.length;
+    noResults.hidden = !(term || topicFilter) || !!shown.length;
     emptyInbox.hidden = !!items.length;
 
     listEl.querySelectorAll("[data-promote]").forEach(function (b) {
@@ -451,8 +507,6 @@
 
     renderStep();
   }
-  document.getElementById("btnSuggest").addEventListener("click", suggestDialog);
-
   document.getElementById("ibSearch").addEventListener("input", function (e) { term = e.target.value.trim(); render(); });
 
   render();

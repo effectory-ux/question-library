@@ -141,10 +141,14 @@ window.QLQ = (function () {
       var df = bags.filter(function (bag) { return countIn(bag, w) > 0; }).length;
       idf[w] = df ? Math.log((N + 1) / df) / norm : 0;
     });
+    /* "work" sits in five topic names, "workload" in one: a name word counts
+       by how few names share it */
+    var nameSets = topics.map(function (t) { return Array.from(tokenize(t.name)); });
+    function nameDf(w) { return nameSets.filter(function (n) { return n.indexOf(w) !== -1; }).length || 1; }
     return topics.map(function (t, i) {
-      var nameToks = Array.from(tokenize(t.name)), score = 0;
+      var nameToks = nameSets[i], score = 0;
       toks.forEach(function (w) {
-        if (nameToks.indexOf(w) !== -1) score += 3;
+        if (nameToks.indexOf(w) !== -1) score += 3 / nameDf(w);
         var cnt = countIn(bags[i], w);
         if (cnt) score += (Math.min(cnt, 3) / 3) * idf[w];
       });
