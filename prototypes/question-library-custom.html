@@ -17,16 +17,36 @@
   <script src="prototypes/question-library-shared.js"></script>
   <script src="prototypes/question-library-cq.js"></script>
   <style>
-    /* incoming questions: custom questions created in surveys, waiting for curation */
+    /* To review: what people wrote in their surveys — an AI summary of what it
+       is about, then the list, with similar wordings stacked into one row */
     .ib-intro { margin: 0 0 var(--spacing-base); color: var(--content-secondary); }
-    .ib-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--spacing-base); margin-bottom: var(--spacing-base); }
-    .ib-cards .card-body { flex: 1; }
-    .ib-card-head { display: flex; align-items: center; gap: var(--spacing-tight); }
-    .ib-card-icon { flex: none; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: var(--radius-full); background: var(--bg-brand-subtle); color: var(--content-brand); }
-    .ib-card-icon i { display: flex; width: 18px; height: 18px; }
-    .ib-filter-note { display: flex; align-items: center; gap: var(--spacing-tight); margin: 0 0 var(--spacing-base-tight); color: var(--content-secondary); }
     .ib-meta { display: block; margin-top: var(--spacing-extra-tight); font-size: 12px; color: var(--content-secondary); }
     .ib-row .btn { flex: none; }
+    #inboxList .ib-row.is-stack { cursor: pointer; }
+    #inboxList .ib-row.is-stack:hover { background: var(--bg-base-hover); }
+    .ib-stack-tile { flex: none; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: var(--radius-base); background: var(--bg-brand-subtle); color: var(--content-brand); }
+    .ib-stack-tile i { display: flex; width: 16px; height: 16px; }
+    .ib-title-row { display: flex; align-items: center; gap: var(--spacing-tight); flex-wrap: wrap; }
+    /* AI summary — the results dashboard's component (reference: effectiveness-overview) */
+    .ai-summary { margin: 0 0 var(--spacing-loose); background: var(--bg-base); border: 1px solid var(--border-info-subtle); border-radius: var(--radius-lg); box-shadow: var(--sh-card); padding: var(--spacing-loose); }
+    .ai-head { display: flex; align-items: center; gap: var(--spacing-base-tight); margin-bottom: var(--spacing-base); }
+    .ai-head-left { display: flex; align-items: center; gap: var(--spacing-tight); flex: 1; }
+    .ai-spark { display: flex; width: 22px; height: 22px; color: var(--content-info-secondary); }
+    .ai-title { margin: 0; font-size: 20px; font-weight: 600; line-height: 28px; color: var(--content-info-secondary); }
+    .ai-head-right { display: flex; align-items: center; gap: var(--spacing-extra-tight); }
+    .ai-intro { margin: 0; font-size: 14px; line-height: 1.6; color: var(--content-secondary); }
+    .ai-more { display: none; }
+    .ai-summary.is-open .ai-more { display: block; }
+    .ai-sec { margin-top: var(--spacing-loose); }
+    .ai-sec-title { margin: 0 0 var(--spacing-tight); font-size: 14px; font-weight: 600; line-height: 22px; color: var(--content-base); }
+    .ai-list { margin: 0; padding-left: var(--spacing-base); display: flex; flex-direction: column; gap: var(--spacing-tight); }
+    .ai-list li { font-size: 14px; line-height: 1.6; color: var(--content-secondary); }
+    .ai-actions { display: flex; gap: var(--spacing-tight); margin-top: var(--spacing-base); }
+    .ai-disclaimer { margin: var(--spacing-loose) 0 0; padding-top: var(--spacing-base-tight); border-top: 1px solid var(--border-base); font-size: 12px; line-height: 1.6; color: var(--content-secondary); }
+    .ai-toggle { display: flex; align-items: center; justify-content: center; gap: var(--spacing-tight); width: 100%; margin-top: var(--spacing-base); padding: var(--spacing-tight) 0; border: 0; background: none; cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 500; color: var(--content-base); }
+    .ai-toggle i { display: flex; width: 16px; height: 16px; }
+    .ai-summary:not(.is-open) .ai-toggle .ai-toggle-less, .ai-summary.is-open .ai-toggle .ai-toggle-more { display: none; }
+    .ai-toggle-more, .ai-toggle-less { display: inline-flex; align-items: center; gap: var(--spacing-tight); }
     /* suggestion stepper: pick the main wording, one group at a time */
     .cmb-opt { display: flex; align-items: flex-start; gap: var(--spacing-tight); width: 100%; padding: var(--spacing-base-tight);
       border: 1px solid var(--border-primary); border-radius: 8px; background: var(--bg-base); cursor: pointer; text-align: left; font: inherit; }
@@ -99,9 +119,8 @@
         <div class="ph-divider"></div>
       </div>
 
-      <!-- What stands out in this list: up to two cards (DS card, outlined, small).
-           Similar wordings open the step-through; a dominant topic filters the list. -->
-      <div class="ib-cards" id="ibCards" hidden></div>
+      <!-- AI summary: what the questions people wrote are about (the results dashboard's component) -->
+      <div class="ai-summary" id="aiSummary" hidden></div>
 
       <p class="text-medium ib-intro">Custom questions written in surveys across your organization. They already work where they were created. Add the ones worth sharing to the library, or leave them as they are.</p>
 
@@ -115,7 +134,6 @@
 
       <!-- The incoming list -->
       <div class="q-topic">
-        <p class="text-medium ib-filter-note" id="ibFilterNote" hidden></p>
         <div class="q-list" id="inboxList"></div>
         <p class="text-medium" id="noResults" hidden style="color: var(--content-secondary); margin: var(--spacing-base-tight) 0 0;">No questions match your search.</p>
         <p class="text-medium" id="emptyInbox" hidden style="color: var(--content-secondary); margin: var(--spacing-base-tight) 0 0;">No new questions from surveys. Questions people create in their surveys show up here.</p>
@@ -133,7 +151,6 @@
   var noResults = document.getElementById("noResults");
   var emptyInbox = document.getElementById("emptyInbox");
   var term = "";
-  var topicFilter = ""; // set from the "most questions are about" card
   var dismissed = {}; // "keep separate" choices, per visit
 
   /* working copy, most-used first: usage is the promotion argument */
@@ -163,103 +180,148 @@
   }
 
   /* ── what the list is about: each question's most likely topic (looser than
-     the suggestion in the dialog — for counting, not for deciding) ── */
+     the dialog's suggestion — for counting, not for deciding) ── */
   function patternTopic(q) {
     var r = QLQ.topicScores(q.text, topicNames);
     if (!r.length || r[0].score < 0.3) return "";
     if (r.length > 1 && r[1].score > r[0].score * 0.8) return "";
     return r[0].name;
   }
-  function dominantTopic() {
-    var counts = {};
-    items.forEach(function (q) { var t = patternTopic(q); if (t) counts[t] = (counts[t] || 0) + 1; });
-    var best = "";
-    Object.keys(counts).forEach(function (t) { if (!best || counts[t] > counts[best]) best = t; });
-    return best && counts[best] >= 3 ? { name: best, count: counts[best] } : null;
-  }
   function libraryCount(topicName) {
     var t = QL.TOPICS.filter(function (x) { return x.name === topicName; })[0];
     return (t ? t.qs.length : 0) + QL.libraryCustom().filter(function (c) { return c.topic === topicName; }).length;
   }
-
-  /* ── the cards: zero, one or two, depending on what stands out ── */
-  function card(icon, title, text, action) {
-    return '<div class="card card-outlined is-sm ib-card"><div class="card-body">' +
-      '<div class="ib-card-head"><span class="ib-card-icon"><i data-icon="' + icon + '"></i></span><span class="card-title">' + title + "</span></div>" +
-      '<div class="card-text">' + text + "</div></div>" +
-      '<div class="card-actions">' + action + "</div></div>";
+  function topicCounts() {
+    var counts = {};
+    items.forEach(function (q) { var t = patternTopic(q); if (t) counts[t] = (counts[t] || 0) + 1; });
+    return Object.keys(counts).map(function (t) { return { name: t, n: counts[t], lib: libraryCount(t) }; })
+      .sort(function (a, b) { return b.n - a.n; });
   }
-  function renderCards(clusters) {
-    var cardsEl = document.getElementById("ibCards");
-    var html = "";
-    if (clusters.length) {
-      html += card("copy",
-        clusters.length === 1 ? "1 group of questions looks similar" : clusters.length + " groups of questions look similar",
-        "Combine each group into one library question with variants, or keep them separate.",
-        '<button class="btn btn-secondary" id="btnSuggest">Review suggestions</button>');
+  function plural(n, one, many) { return n + " " + (n === 1 ? one : many); }
+  function joinAnd(parts) { return parts.length < 2 ? parts.join("") : parts.slice(0, -1).join(", ") + " and " + parts[parts.length - 1]; }
+
+  /* ── the AI summary: written from the list itself, in the results
+     dashboard's component. Hidden for the session with the eye button. ── */
+  var aiOpen = false;
+  function renderSummary(clusters) {
+    var box = document.getElementById("aiSummary");
+    var hidden = false; try { hidden = sessionStorage.getItem("ql.aiHidden") === "1"; } catch (e) {}
+    if (hidden || items.length < 3) { box.hidden = true; return; }
+    var top = topicCounts().filter(function (t) { return t.n >= 2; }).slice(0, 2);
+    var classified = top.reduce(function (sum, t) { return sum + t.n; }, 0);
+    var rest = items.length - classified;
+    var intro = "People wrote " + plural(items.length, "custom question", "custom questions") + " in their surveys so far.";
+    if (top.length) {
+      intro += " Most are about " + joinAnd(top.map(function (t) { return t.name + " (" + t.n + ")"; })) + ".";
+      var covered = top.filter(function (t) { return t.lib; });
+      if (covered.length) intro += " The library already has " + joinAnd(covered.map(function (t) { return plural(t.lib, "standard question", "standard questions") + " on " + t.name; })) + ", so survey creators may not be finding them.";
     }
-    var dom = dominantTopic();
-    if (dom) {
-      var k = libraryCount(dom.name);
-      html += card("lightbulb",
-        "Most new questions are about " + QL.esc(dom.name),
-        dom.count + " of " + items.length + " questions here are about it. " +
-        (k ? "The library already has " + k + (k === 1 ? " question" : " questions") + " on this topic." : "The library has no questions on this topic yet."),
-        '<button class="btn btn-secondary" id="btnTopicFilter">' + (topicFilter ? "Show all questions" : "Show these questions") + "</button>");
-    }
-    cardsEl.innerHTML = html;
-    cardsEl.hidden = !html;
+    if (clusters.length) intro += " " + plural(clusters.length, "group asks", "groups ask") + " the same thing in different words.";
+    if (rest > 0 && top.length) intro += " The other " + rest + " are one-offs about local matters.";
+    var steps = [];
+    if (clusters.length) steps.push("Review the " + plural(clusters.length, "group", "groups") + " of similar wordings and combine each into one library question with variants.");
+    top.forEach(function (t) {
+      steps.push(t.lib
+        ? "Point survey creators to the standard " + t.name + " questions before they write their own."
+        : "Add the " + t.name + " questions to the library. It has no questions on this topic yet.");
+    });
+    box.innerHTML =
+      '<div class="ai-head"><div class="ai-head-left"><i data-icon="featured" class="ai-spark"></i><p class="ai-title">AI summary</p></div>' +
+      '<div class="ai-head-right">' +
+      '<button class="ib ib-36 ib-tertiary" id="aiHide" aria-label="Hide summary" data-tt="Hide summary"><i data-icon="eye-off"></i></button>' +
+      '<button class="ib ib-36 ib-tertiary" aria-label="About this summary" data-tt="Written from the questions in this list: what they are about, what the library already covers, and which ones say the same thing"><i data-icon="info"></i></button>' +
+      "</div></div>" +
+      '<p class="ai-intro">' + QL.esc(intro) + "</p>" +
+      '<div class="ai-more">' +
+      (steps.length ? '<div class="ai-sec"><h4 class="ai-sec-title">Suggested next steps</h4><ul class="ai-list">' + steps.map(function (t) { return "<li>" + QL.esc(t) + "</li>"; }).join("") + "</ul></div>" : "") +
+      (clusters.length ? '<div class="ai-actions"><button class="btn btn-secondary" id="btnSuggest">Review similar questions</button></div>' : "") +
+      '<p class="ai-disclaimer">This AI summary may not be fully accurate. Review it before making decisions.</p>' +
+      "</div>" +
+      '<button class="ai-toggle" id="aiToggle" aria-expanded="' + aiOpen + '"><span class="ai-toggle-more">Show more <i data-icon="chevron-down"></i></span><span class="ai-toggle-less">Show less <i data-icon="chevron-up"></i></span></button>';
+    box.classList.toggle("is-open", aiOpen);
+    box.hidden = false;
+    document.getElementById("aiToggle").addEventListener("click", function () {
+      aiOpen = !aiOpen; box.classList.toggle("is-open", aiOpen); this.setAttribute("aria-expanded", aiOpen);
+    });
+    document.getElementById("aiHide").addEventListener("click", function () {
+      try { sessionStorage.setItem("ql.aiHidden", "1"); } catch (e) {}
+      box.hidden = true;
+    });
     var bs = document.getElementById("btnSuggest");
     if (bs) bs.addEventListener("click", function () { suggestDialog(); });
-    var bt = document.getElementById("btnTopicFilter");
-    if (bt) bt.addEventListener("click", function () { topicFilter = topicFilter ? "" : dom.name; render(); });
-    /* the filter, named above the list, with the way back */
-    var note = document.getElementById("ibFilterNote");
-    if (topicFilter) {
-      var n = items.filter(function (q) { return patternTopic(q) === topicFilter; }).length;
-      note.innerHTML = "Showing " + n + (n === 1 ? " question" : " questions") + " about " + QL.esc(topicFilter) +
-        ' <button class="btn btn-tertiary" id="btnShowAll">Show all</button>';
-      note.hidden = false;
-      document.getElementById("btnShowAll").addEventListener("click", function () { topicFilter = ""; render(); });
-    } else {
-      note.hidden = true;
-    }
   }
 
+  /* ── the list: similar wordings are one stacked row (click it to choose
+     the main wording); everything else is a row of its own ── */
   function render() {
     var clusters = findClusters();
-    renderCards(clusters);
-
+    renderSummary(clusters);
     var groupOf = {};
     clusters.forEach(function (g, gi) { g.forEach(function (q) { groupOf[q.text] = gi; }); });
 
-    var shown = items.filter(function (q) { return QL.matches(q.text, term) && (!topicFilter || patternTopic(q) === topicFilter); });
-    listEl.innerHTML = shown.map(function (q) {
-      var i = items.indexOf(q);
-      /* "similar to": the row says it, the banner only counts it */
-      var gi = groupOf[q.text], sim = [];
+    var emitted = {}, html = [];
+    items.forEach(function (q) {
+      var gi = groupOf[q.text];
       if (gi !== undefined) {
-        var others = clusters[gi].length - 1;
-        sim.push('<button class="ib-sim" data-group="' + gi + '">Similar to ' + others + (others === 1 ? " other question" : " other questions") + "</button>");
+        if (emitted[gi]) return;
+        var g = clusters[gi];
+        if (!g.some(function (x) { return QL.matches(x.text, term); })) return;
+        emitted[gi] = true;
+        var main = g[0], useSum = g.reduce(function (sum, x) { return sum + (x.uses || 0); }, 0);
+        var people = {}; g.forEach(function (x) { people[x.by] = true; });
+        html.push('<div class="q-row ib-row is-stack" data-group="' + gi + '">' +
+          '<span class="ib-stack-tile"><i data-icon="copy"></i></span>' +
+          '<div class="text-medium text-w500 q-text" style="flex:1;"><span class="ib-title-row">' + QL.hl(main.text, term) +
+          '<span class="tag tag-brand">' + plural(g.length, "wording", "wordings") + "</span></span>" +
+          '<span class="ib-meta text-w400">' + (useSum === 1 ? "Used in 1 survey" : "Used in " + useSum + " surveys") + " · " + plural(Object.keys(people).length, "person", "people") +
+          " · " + g.slice(1).map(function (x) { return "“" + QL.esc(short(x.text)) + "”"; }).join(", ") + "</span></div>" +
+          QL.scaleChip(main.type) +
+          '<button class="btn btn-secondary" data-review-group="' + gi + '">Review</button>' +
+          '<button class="ib ib-24 ib-tertiary" data-more-group="' + gi + '" aria-label="More options" data-tt="More options"><i data-icon="more-vertical"></i></button>' +
+          "</div>");
+        return;
       }
-      if (libSimilar(q).length) sim.push('<button class="ib-sim" data-promote="' + i + '">Similar to a library question</button>');
-      return '<div class="q-row ib-row">' +
+      if (!QL.matches(q.text, term)) return;
+      var i = items.indexOf(q);
+      var lib = libSimilar(q).length ? ' · <button class="ib-sim" data-promote="' + i + '">Similar to a library question</button>' : "";
+      html.push('<div class="q-row ib-row">' +
         '<div class="text-medium text-w500 q-text" style="flex:1;">' + QL.hl(q.text, term) +
-        '<span class="ib-meta text-w400">' + uses(q) + " · " + QL.esc(q.by) + " · Added " + QL.esc(q.added) +
-        (sim.length ? " · " + sim.join(" · ") : "") + "</span></div>" +
+        '<span class="ib-meta text-w400">' + uses(q) + " · " + QL.esc(q.by) + " · Added " + QL.esc(q.added) + lib + "</span></div>" +
         QL.scaleChip(q.type) +
         '<button class="btn btn-secondary" data-promote="' + i + '">Review</button>' +
         '<button class="ib ib-24 ib-tertiary" data-more="' + i + '" aria-label="More options" data-tt="More options"><i data-icon="more-vertical"></i></button>' +
-        "</div>";
-    }).join("");
-    noResults.hidden = !(term || topicFilter) || !!shown.length;
+        "</div>");
+    });
+    listEl.innerHTML = html.join("");
+    noResults.hidden = !term || !!html.length;
     emptyInbox.hidden = !!items.length;
 
     listEl.querySelectorAll("[data-promote]").forEach(function (b) {
       b.addEventListener("click", function () { promoteDialog(items[+b.getAttribute("data-promote")]); });
     });
-    listEl.querySelectorAll("[data-group]").forEach(function (b) {
-      b.addEventListener("click", function () { suggestDialog(+b.getAttribute("data-group")); });
+    /* a stack opens the choice of main wording */
+    listEl.querySelectorAll(".is-stack").forEach(function (row) {
+      var g = clusters[+row.getAttribute("data-group")];
+      row.addEventListener("click", function (e) { if (e.target.closest("button")) return; suggestDialog(g); });
+    });
+    listEl.querySelectorAll("[data-review-group]").forEach(function (b) {
+      b.addEventListener("click", function () { suggestDialog(clusters[+b.getAttribute("data-review-group")]); });
+    });
+    listEl.querySelectorAll("[data-more-group]").forEach(function (b) {
+      b.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var g = clusters[+b.getAttribute("data-more-group")];
+        QL.pickMenu(b, ["Keep separate", "Keep out of the library"], -1, function (i) {
+          if (i === 0) {
+            g.forEach(function (q) { dismissed[q.text] = true; });
+            QL.notify("Kept separate", "The wordings stay in this list as questions of their own.");
+          } else {
+            removeFromInbox(g.map(function (q) { return q.text; }));
+            QL.notify("Kept out of the library", "They keep working in the surveys that use them and won't show here again.");
+          }
+          render();
+        });
+      });
     });
     /* the exit that isn't the library: leave the question where it is */
     listEl.querySelectorAll("[data-more]").forEach(function (b) {
@@ -360,10 +422,10 @@
     }); });
     setTimeout(function () { box.remove(); }, 900);
   }
-  function suggestDialog(startAt) {
-    var groups = findClusters();
+  function suggestDialog(only) {
+    var groups = Array.isArray(only) ? [only] : findClusters();
     if (!groups.length) return;
-    var idx = typeof startAt === "number" && startAt < groups.length ? startAt : 0, combined = 0, keptGroups = 0;
+    var idx = 0, combined = 0, keptGroups = 0;
     var overlay = QL.openOverlay(
       '<div class="overlay"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="sg-title" style="width: min(640px, calc(100vw - 32px));">' +
       '<button class="dialog-close" aria-label="Close" data-close><i data-icon="cross"></i></button>' +
@@ -421,7 +483,9 @@
       pick = 0; /* default: the most-used wording (groups are usage-sorted) */
       busy = false;
       btnKeep.disabled = false; btnGo.disabled = false;
-      overlay.querySelector("#sgCount").textContent = "Suggestion " + (idx + 1) + " of " + groups.length;
+      var cnt = overlay.querySelector("#sgCount");
+      cnt.textContent = "Suggestion " + (idx + 1) + " of " + groups.length;
+      cnt.hidden = groups.length < 2;
       renderOpts();
       topicMount.innerHTML = "";
       topic = topicRow(groups[idx][0].text);

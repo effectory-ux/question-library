@@ -123,7 +123,7 @@
   var noResults = document.getElementById("noResults");
   var searchEl = document.getElementById("qlSearch");
   var term = "";
-  var FILTERS = ["All questions", "Benchmarked questions", "Custom questions"];
+  var FILTERS = ["All questions", "Standard questions", "Custom questions"];
   var filter = 0;
 
   /* one governed library: Effectory's benchmarked structure is fixed — its
@@ -172,7 +172,7 @@
           '<div class="text-medium text-w500 q-text" style="flex:1;">' + QL.hl(q.text, term) + "</div>" +
           vChip +
           (QL.pendingFor(q.text).length ? QL.draftTag() : "") +
-          (q.custom ? '<span class="tag tag-info">Custom</span>' : '<span class="tag is-standard">Benchmarked</span>') +
+          (q.custom ? '<span class="tag tag-info">Custom</span>' : "") +
           QL.scaleChip(q.type) +
           '<button class="ib ib-24 ib-tertiary" data-menu aria-label="More options" data-tt="More options"><i data-icon="more-vertical"></i></button>' +
           "</div>";

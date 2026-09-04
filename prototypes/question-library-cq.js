@@ -312,7 +312,7 @@ window.QLQ = (function () {
 
     var overlay = el(
       '<div class="overlay" style="z-index:60;">' +
-      '<div class="dialog dialog-worksurface cq-dialog' + (editing ? " has-corner-tags" : "") + '" role="dialog" aria-modal="true" aria-labelledby="cq-title" style="display:flex;flex-direction:column;">' +
+      '<div class="dialog dialog-worksurface cq-dialog' + "" + '" role="dialog" aria-modal="true" aria-labelledby="cq-title" style="display:flex;flex-direction:column;">' +
       '<div class="tt-demo dialog-close-tt"><button class="dialog-close" aria-label="Close" data-tt="Close"><i data-icon="cross"></i></button></div>' +
       '<div class="cq-step-mount"></div>' +
       '<div class="dialog-header is-sm" style="padding-right:16px;">' +
@@ -342,7 +342,7 @@ window.QLQ = (function () {
         '<img class="inline-notif-icon" src="assets/icons/notification-information.svg" alt="" />' +
         '<div class="inline-notif-content"><span class="inline-notif-text">' +
         '<span class="inline-notif-title">The library already has a similar question</span> ' +
-        '<span class="inline-notif-msg">“' + esc(window.QL ? QL.fill(s0.text) : s0.text) + "” · " + (s0.bench ? "Benchmarked" : "Custom") + ". You can still add this one.</span>" +
+        '<span class="inline-notif-msg">“' + esc(window.QL ? QL.fill(s0.text) : s0.text) + "” · " + (s0.bench ? "Standard" : "Custom") + ". You can still add this one.</span>" +
         "</span></div></div>";
     }
 
@@ -370,7 +370,7 @@ window.QLQ = (function () {
       } else if (editing) {
         kind.innerHTML =
           (standard
-            ? '<span class="infotag is-standard"><i data-icon="barchart-2"></i>Benchmarked</span>' +
+            ? '<span class="infotag is-standard"><i data-icon="barchart-2"></i>Standard</span>' +
               (st.variant ? '<span class="infotag is-alt">Alternative wording</span>' : "")
             : '<span class="infotag is-custom"><i data-icon="edit-inline"></i>Custom</span><span class="infotag is-alt">No benchmark</span>') +
           (usedIn.length ? '<span class="infotag is-alt" data-tt="' + esc(usedIn.map(function (u) { return u[0]; }).join("\n")).replace(/\n/g, "&#10;") + '">Used in ' + usedIn.length + (usedIn.length === 1 ? " survey" : " surveys") + "</span>" : "");
@@ -794,7 +794,7 @@ window.QLQ = (function () {
     function optCard(id, text, m, type) {
       var on = st.pick === id;
       var tags = m
-        ? (m.bench ? '<span class="infotag is-standard"><i data-icon="barchart-2"></i>Benchmarked</span>' : '<span class="infotag is-custom"><i data-icon="edit-inline"></i>Custom</span>') +
+        ? (m.bench ? '<span class="infotag is-standard"><i data-icon="barchart-2"></i>Standard</span>' : '<span class="infotag is-custom"><i data-icon="edit-inline"></i>Custom</span>') +
           (m.theme ? '<span class="infotag is-alt">' + esc(m.theme) + "</span>" : "")
         : '<span class="infotag is-custom"><i data-icon="edit-inline"></i>Your question</span><span class="infotag is-alt">No benchmark</span>';
       return '<button type="button" class="cq-opt-card' + (on ? " is-on" : "") + '" role="radio" aria-checked="' + on + '" data-pick="' + esc(String(id)) + '">' +

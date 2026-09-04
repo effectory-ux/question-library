@@ -188,7 +188,7 @@
   var LIST = "prototypes/question-library-templates.html";
   var slug = new URLSearchParams(location.search).get("t");
   var t = slug && QL.getTemplate(slug);
-  if (!t) { location.href = LIST; return; }
+  if (!t) { QL.go(LIST); return; }
   /* templates are editable in both versions; benchmark questions inside stay variant-only */
   var editable = true;
   var sections = QL.templateSections(t);   /* working copy, session-scoped */
@@ -200,7 +200,7 @@
 
   document.getElementById("btnBack").addEventListener("click", function () {
     if (document.referrer && document.referrer.indexOf(location.origin) === 0 && history.length > 1) history.back();
-    else location.href = LIST;
+    else QL.go(LIST);
   });
 
   document.getElementById("lockNotif").hidden = editable;
@@ -231,7 +231,7 @@
         };
         QL.addCustomTemplate(copy);
         QL.trackChange("Created template “" + copy.name + "”", { tpl: copy.slug, kind: "create" });
-        location.href = "prototypes/question-library-template.html?t=" + copy.slug;
+        QL.go("prototypes/question-library-template.html?t=" + copy.slug);
       });
     });
     if (window.Icons) window.Icons.render();

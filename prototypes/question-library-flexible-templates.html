@@ -163,10 +163,10 @@
       var slug = row.getAttribute("data-slug");
       row.addEventListener("click", function (e) {
         if (e.target.closest("[data-kebab]")) return;
-        location.href = DETAIL + "?t=" + encodeURIComponent(slug);
+        QL.go(DETAIL + "?t=" + encodeURIComponent(slug));
       });
       row.addEventListener("keydown", function (e) {
-        if (e.key === "Enter") location.href = DETAIL + "?t=" + encodeURIComponent(slug);
+        if (e.key === "Enter") QL.go(DETAIL + "?t=" + encodeURIComponent(slug));
       });
       row.querySelector("[data-kebab]").addEventListener("click", function (e) {
         e.stopPropagation();
@@ -212,7 +212,7 @@
       var slug = "custom-" + Date.now().toString(36);
       QL.addCustomTemplate({ slug: slug, name: name, img: null, desc: "", sections: [] });
       QL.trackChange("Created template “" + name + "”", { tpl: slug, kind: "create" });
-      location.href = DETAIL + "?t=" + slug;
+      QL.go(DETAIL + "?t=" + slug);
     });
   });
 

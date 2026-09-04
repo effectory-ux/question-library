@@ -164,7 +164,7 @@
     return '<div class="q-row" draggable="true" data-t="' + ti + '" data-q="' + qi + '">' +
       '<span class="q-drag" data-tt="Drag to reorder"><i data-icon="drag-drop"></i></span>' +
       '<div class="text-medium text-w500 q-text">' + QL.hl(q.text, term) + "</div>" +
-      (q.custom ? '<span class="tag tag-highlight is-custom">Custom</span>' : '<span class="tag is-standard">Benchmarked</span>') +
+      (q.custom ? '<span class="tag tag-highlight is-custom">Custom</span>' : "") +
       QL.scaleChip(q.type) +
       '<button class="ib ib-24 ib-tertiary" data-edit aria-label="Edit question" data-tt="Edit question"><i data-icon="edit"></i></button>' +
       "</div>";

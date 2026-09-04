@@ -621,6 +621,11 @@ window.QL = (function () {
     }
   });
 
+  /* ── navigation: a page change keeps the toolbar when the URL carries it ── */
+  function go(url) {
+    location.href = (window.ProtoToolbar && ProtoToolbar.carry) ? ProtoToolbar.carry(url) : url;
+  }
+
   /* ── system notification ── */
   function notify(title, desc, action) {
     var stack = document.querySelector(".sysnotif-stack");
@@ -734,7 +739,7 @@ window.QL = (function () {
     function add(n, one, many) { if (n) parts.push(n === 1 ? one : n + " " + many); }
     add(c.added, "1 new question in the library", "new questions in the library");
     add(c.combined, "1 group of similar questions combined into one", "groups of similar questions combined");
-    add(c.wording, "1 new wording for a benchmarked question", "new wordings for benchmarked questions");
+    add(c.wording, "1 new wording for a standard question", "new wordings for standard questions");
     add(c.edited, "1 improved question", "improved questions");
     add(c.moved, "1 question in a better place", "questions in a better place");
     add(c.topics, "1 new topic", "new topics");
@@ -1291,7 +1296,7 @@ window.QL = (function () {
   function loadTab(url, push) {
     var cur = document.querySelector(".app-main-inner");
     var curPh = cur && cur.querySelector(".ph");
-    if (!curPh) { location.href = url; return; }
+    if (!curPh) { go(url); return; }
     return fetch(url, { credentials: "same-origin" }).then(function (r) {
       if (!r.ok) throw new Error(r.status);
       return r.text();
@@ -1346,7 +1351,7 @@ window.QL = (function () {
         }
         swap();
       });
-    }).catch(function () { location.href = url; });
+    }).catch(function () { go(url); });
   }
   function initTabRouter() {
     noteLoadedAssets();
@@ -1365,6 +1370,7 @@ window.QL = (function () {
   }
 
   return {
+    go: go,
     pendingFor: pendingFor, pendingTopic: pendingTopic, dropChange: dropChange, draftTag: draftTag, DRAFT_NOTE: DRAFT_NOTE,
     refreshInboxTab: refreshInboxTab, lastPublished: lastPublished,
     ORG: ORG, TYPES: TYPES, TOPICS: TOPICS, THEMES: THEMES,

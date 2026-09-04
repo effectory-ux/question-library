@@ -328,12 +328,12 @@ button.sel-btn.cq-sel { font-size: 14px; }
   height: 28px; padding: 0 10px; display: inline-flex; align-items: center; gap: 6px;
   font-size: 12px; line-height: 1; border-radius: var(--radius-base); }
 
-/* Kind tags pinned to the dialog's very corner (design-canvas edit, 26 Aug):
-   they mirror the close button's 15px inset on the other side, and the dialog
-   gets extra top padding so the title clears them. Question dialogs only. */
-.dialog.has-corner-tags { padding-top: 64px; }
-
-.dialog.has-corner-tags .dialog-header .bmq-kind { position: absolute; top: 16px; left: 16px; }
+/* The kind tags sit in the header, above the title, as its first row; without
+   tags the header starts at the title — no reserved space either way. */
+.cq-dialog .dialog-header .bmq-kind { margin-bottom: var(--spacing-extra-tight); }
+/* an empty slot must not take a flex gap: the header starts at the dialog padding */
+.cq-dialog > .cq-step-mount:empty { display: none; }
+.cq-dialog .dialog-header .bmq-kind:empty { display: none; }
 
 /* The total rides in a grey circle; --bg-secondary is too faint against the
    button's transparent fill, so the pill uses the stronger neutral. */
