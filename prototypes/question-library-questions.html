@@ -98,13 +98,7 @@
           <span class="search-icon"><i data-icon="search"></i></span>
           <input type="search" class="srch" id="qlSearch" placeholder="Search for specific questions" aria-label="Search for specific questions" />
         </div>
-        <button class="btn btn-secondary" id="btnFilter" aria-haspopup="listbox"><i data-icon="filter"></i> <span id="fltVal">All questions</span></button>
-        <div class="slt-wrap ql-lang">
-          <div class="slt" tabindex="0" role="button" aria-haspopup="listbox" aria-label="Library languages" data-tt="The languages this project's question library is available in">
-            <span class="slt-left"><span class="slt-val"></span></span>
-            <i data-icon="chevron-down"></i>
-          </div>
-        </div>
+        <button class="btn btn-secondary" id="btnView" aria-haspopup="menu"><i data-icon="sliders"></i> View <i data-icon="chevron-down"></i></button>
         <button class="btn btn-secondary" id="btnAdd" aria-haspopup="menu"><i data-icon="plus"></i> Add <i data-icon="chevron-down"></i></button>
       </div>
 
@@ -126,6 +120,10 @@
   var term = "";
   var FILTERS = ["All questions", "Standard questions", "Custom questions"];
   var filter = 0;
+  /* the View control: how the list is arranged — Effectory's topics (the
+     default), the themes questions report to, or one alphabetical list */
+  var GROUPS = ["Topic", "Theme", "None (A to Z)"];
+  var group = 0;
 
   /* one governed library: Effectory's benchmarked structure is fixed — its
      topics can't be renamed and its questions can't move. The organisation's
@@ -158,42 +156,88 @@
   function short(t) { t = QL.fill(t); return t.length > 48 ? t.slice(0, 45) + "…" : t; }
   function topicNames() { return topics.filter(function (t) { return !t.pile; }).map(function (t) { return t.name; }); }
 
+  function passes(q) {
+    if (!QL.matches(q.text, term)) return false;
+    if (filter === 1 && q.custom) return false;
+    if (filter === 2 && !q.custom) return false;
+    return true;
+  }
+  /* a row: the question, its tags (Unpublished · Custom · theme), the scale, the kebab */
+  function rowHTML(topic, ti, q, qi, showTheme) {
+    var vChip = q.custom && q.variants && q.variants.length
+      ? '<span class="q-variants" data-tt="' + QL.esc(q.variants.join(" • ")) + '">' + q.variants.length + " variants</span>"
+      : "";
+    var themes = q.custom ? [] : QL.themesOf(q.text);
+    var themeTag = showTheme && themes.length
+      ? '<span class="tag is-theme tag-full"' + (themes.length > 1 ? ' data-tt="' + QL.esc(themes.join("\n")).replace(/\n/g, "&#10;") + '"' : "") + '><i data-icon="themes"></i> ' +
+        QL.esc(themes[0]) + (themes.length > 1 ? " +" + (themes.length - 1) : "") + "</span>"
+      : "";
+    return '<div class="q-row" data-t="' + ti + '" data-q="' + qi + '">' +
+      '<div class="text-medium text-w500 q-text" style="flex:1;">' + QL.hl(q.text, term) + "</div>" +
+      vChip +
+      (QL.pendingFor(q.text).length ? QL.draftTag() : "") +
+      (q.custom ? '<span class="tag tag-info">Custom</span>' : "") +
+      themeTag +
+      QL.scaleChip(q.type) +
+      '<button class="ib ib-24 ib-tertiary" data-menu aria-label="More options" data-tt="More options"><i data-icon="more-vertical"></i></button>' +
+      "</div>";
+  }
+  function block(name, count, rows, extra) {
+    return '<div class="q-topic">' +
+      '<div class="q-head"><h2 class="text-l5">' + QL.esc(name) + "</h2>" +
+      '<span class="q-count">' + count + "</span>" + (extra || "") + "</div>" +
+      '<div class="q-list">' + rows + "</div></div>";
+  }
+  function everyRow() {
+    var all = [];
+    topics.forEach(function (t, ti) { t.qs.forEach(function (q, qi) { all.push({ t: t, ti: ti, q: q, qi: qi }); }); });
+    return all;
+  }
+
   function render() {
-    var html = topics.map(function (topic, ti) {
-      var shownCount = 0;
-      var rows = topic.qs.map(function (q, qi) {
-        if (!QL.matches(q.text, term)) return "";
-        if (filter === 1 && q.custom) return "";
-        if (filter === 2 && !q.custom) return "";
-        shownCount++;
-        var vChip = q.custom && q.variants && q.variants.length
-          ? '<span class="q-variants" data-tt="' + QL.esc(q.variants.join(" • ")) + '">' + q.variants.length + " variants</span>"
-          : "";
-        return '<div class="q-row" data-t="' + ti + '" data-q="' + qi + '">' +
-          '<div class="text-medium text-w500 q-text" style="flex:1;">' + QL.hl(q.text, term) + "</div>" +
-          vChip +
-          (QL.pendingFor(q.text).length ? QL.draftTag() : "") +
-          (q.custom ? '<span class="tag tag-info">Custom</span>' : "") +
-          QL.scaleChip(q.type) +
-          '<button class="ib ib-24 ib-tertiary" data-menu aria-label="More options" data-tt="More options"><i data-icon="more-vertical"></i></button>' +
-          "</div>";
+    var html;
+    if (group === 0) {
+      /* by topic: Effectory's structure, custom topics, the Custom questions group last */
+      html = topics.map(function (topic, ti) {
+        var shownCount = 0;
+        var rows = topic.qs.map(function (q, qi) {
+          if (!passes(q)) return "";
+          shownCount++;
+          return rowHTML(topic, ti, q, qi, true);
+        }).join("");
+        if (!rows) {
+          if (term || filter || topic.pile) return "";
+          rows = '<div class="q-row" data-empty><span class="text-medium q-text" style="color: var(--content-secondary); cursor: default;">No questions in this topic yet</span></div>';
+        }
+        return block(topic.name, shownCount, rows,
+          (QL.pendingTopic(topic.name).length ? QL.draftTag() : "") +
+          (topic.custom ? '<button class="ib ib-24 ib-tertiary" data-rename="' + ti + '" aria-label="Rename topic" data-tt="Rename topic"><i data-icon="edit"></i></button>' : ""));
       }).join("");
-      if (!rows) {
-        if (term || filter || topic.pile) return "";
-        rows = '<div class="q-row" data-empty><span class="text-medium q-text" style="color: var(--content-secondary); cursor: default;">No questions in this topic yet</span></div>';
-      }
-      return '<div class="q-topic">' +
-        '<div class="q-head"><h2 class="text-l5">' + QL.esc(topic.name) + "</h2>" +
-        '<span class="q-count">' + shownCount + "</span>" +
-        (QL.pendingTopic(topic.name).length ? QL.draftTag() : "") +
-        (topic.custom ? '<button class="ib ib-24 ib-tertiary" data-rename="' + ti + '" aria-label="Rename topic" data-tt="Rename topic"><i data-icon="edit"></i></button>' : "") +
-        "</div>" +
-        '<div class="q-list">' + rows + "</div></div>";
-    }).join("");
+    } else if (group === 1) {
+      /* by theme: the analytical layer; a question can report to more than one
+         theme and then shows under each; the rest — custom questions and
+         standard questions without a theme — collect under No theme */
+      var all = everyRow().filter(function (e) { return passes(e.q); });
+      var blocks = QL.THEMES.map(function (th) {
+        return { name: th.name, rows: all.filter(function (e) { return QL.themesOf(e.q.text).indexOf(th.name) !== -1; }) };
+      });
+      blocks.push({ name: "No theme", rows: all.filter(function (e) { return e.q.custom || !QL.themesOf(e.q.text).length; }) });
+      html = blocks.map(function (b) {
+        if (!b.rows.length) return "";
+        return block(b.name, b.rows.length, b.rows.map(function (e) { return rowHTML(e.t, e.ti, e.q, e.qi, false); }).join(""));
+      }).join("");
+    } else {
+      /* one list, A to Z */
+      var sorted = everyRow().filter(function (e) { return passes(e.q); })
+        .sort(function (x, y) { return QL.fill(x.q.text).toLowerCase().localeCompare(QL.fill(y.q.text).toLowerCase()); });
+      html = sorted.length
+        ? '<div class="q-topic"><div class="q-list">' + sorted.map(function (e) { return rowHTML(e.t, e.ti, e.q, e.qi, true); }).join("") + "</div></div>"
+        : "";
+    }
     list.innerHTML = html;
     noResults.hidden = !!html.trim();
 
-    /* custom topics can be renamed; the benchmarked structure can't */
+    /* custom topics can be renamed; the standard structure can't */
     list.querySelectorAll("[data-rename]").forEach(function (b) {
       var topic = topics[+b.getAttribute("data-rename")];
       b.addEventListener("click", function (e) {
@@ -329,10 +373,10 @@
     if (rowMenus.length) return closeRowMenus();
     var canUp = q.custom && qi > 0 && topic.qs[qi - 1].custom;
     var canDown = q.custom && qi < topic.qs.length - 1;
+    /* reordering is a topic-view thing; moving to a topic works from any view */
     var html = item("settings", "Settings") +
       (q.custom
-        ? item("up", "Move up", { disabled: !canUp }) +
-          item("down", "Move down", { disabled: !canDown }) +
+        ? (group === 0 ? item("up", "Move up", { disabled: !canUp }) + item("down", "Move down", { disabled: !canDown }) : "") +
           item("topic", "Move to topic", { sub: true })
         : "");
     var r = btn.getBoundingClientRect();
@@ -430,13 +474,15 @@
     });
   }
 
-  var btnFilter = document.getElementById("btnFilter");
-  btnFilter.addEventListener("click", function () {
-    QL.pickMenu(btnFilter, FILTERS, filter, function (i) {
-      filter = i;
-      document.getElementById("fltVal").textContent = FILTERS[i];
-      render();
-    });
+  /* the View control: arrangement, what to show, preview language */
+  var btnView = document.getElementById("btnView");
+  btnView.addEventListener("click", function (e) {
+    e.stopPropagation();
+    QL.viewMenu(btnView, [
+      { label: "Group by", options: GROUPS, selected: group, onPick: function (i) { group = i; render(); } },
+      { label: "Show", options: FILTERS, selected: filter, onPick: function (i) { filter = i; render(); } },
+      { label: "Preview language", options: QL.LANGS.map(function (l) { return l.flag + "  " + l.label; }), selected: QL.getLang(), onPick: QL.setLang }
+    ]);
   });
 
   var btnAdd = document.getElementById("btnAdd");

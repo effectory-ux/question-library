@@ -10,6 +10,7 @@ window.QL = (function () {
     s.textContent =
       ".sysnotif-action{background:none;border:0;padding:0;font:inherit;font-size:14px;font-weight:500;line-height:1.6;color:var(--content-inverse);text-decoration:underline;cursor:pointer}" +
       ".ib-sim{background:none;border:0;padding:0;font:inherit;font-size:inherit;color:var(--content-brand);cursor:pointer}.ib-sim:hover{text-decoration:underline}" +
+      ".tag.is-theme{background:var(--bg-tertiary);color:var(--content-base)}" +
       ".vh-body{display:flex;flex-direction:column;gap:var(--spacing-loose);font-size:14px}" +
       ".vh-entry{padding-bottom:var(--spacing-loose);border-bottom:1px solid var(--border-base)}.vh-entry:last-child{border-bottom:0;padding-bottom:0}" +
       ".vh-head{display:flex;align-items:center;gap:var(--spacing-tight);flex-wrap:wrap;margin-bottom:var(--spacing-tight)}" +
@@ -494,6 +495,17 @@ window.QL = (function () {
     { flag: "🇵🇹", label: "Portuguese (Portugal)" }
   ];
 
+  /* which themes a standard question reports to (the analytical layer; a
+     question can inform more than one); custom questions report to none */
+  var THEME_MAP = null;
+  function themesOf(text) {
+    if (!THEME_MAP) {
+      THEME_MAP = {};
+      THEMES.forEach(function (th) { th.qs.forEach(function (q) { (THEME_MAP[q] = THEME_MAP[q] || []).push(th.name); }); });
+    }
+    return THEME_MAP[text] || [];
+  }
+
   /* ── helpers ── */
   function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
   function fill(s) { return s.split("{org}").join(ORG).split("{manager}").join("manager"); }
@@ -906,6 +918,14 @@ window.QL = (function () {
 
   /* ── language select (Single Select + Dropdown menu with the mandatory selected check) ── */
   var langIndex = 0;
+  function getLang() { return langIndex; }
+  function setLang(i) {
+    if (i === langIndex) return;
+    langIndex = i;
+    var v = document.querySelector(".ql-lang .slt-val");
+    if (v) v.textContent = LANGS[i].flag + "  " + LANGS[i].label;
+    if (i !== 0) notify("This prototype shows English content only");
+  }
   function initLang() {
     var wrap = document.querySelector(".ql-lang");
     if (!wrap) return;
@@ -1046,6 +1066,60 @@ window.QL = (function () {
 
   /* ── generic fixed-position picker menu (Dropdown menu component, body-appended) ── */
   var pickOpen = null;
+  /* a menu of sections, each single-select (label + check), that stays open
+     while settings are adjusted — the View control */
+  function viewMenu(trigger, sections) {
+    if (pickOpen) { pickOpen.remove(); pickOpen = null; return; }
+    var menu = document.createElement("div");
+    menu.className = "menu";
+    menu.setAttribute("role", "menu");
+    menu.style.maxHeight = "min(70vh, 560px)";
+    menu.style.overflowY = "auto";
+    function draw() {
+      menu.innerHTML = sections.map(function (sec, si) {
+        return (si ? '<div class="menu-divider"></div>' : "") +
+          '<div class="menu-group-lbl">' + esc(sec.label) + "</div>" +
+          sec.options.map(function (label, i) {
+            var on = i === sec.selected;
+            return '<div class="menu-item' + (on ? " is-selected" : "") + '" role="menuitemradio" aria-checked="' + on + '" data-s="' + si + '" data-i="' + i + '">' +
+              '<span class="menu-item-body"><span class="menu-item-title">' + esc(label) + "</span></span>" +
+              (on ? '<i data-icon="check" class="menu-item-check"></i>' : "") +
+              "</div>";
+          }).join("");
+      }).join("");
+      if (window.Icons) window.Icons.render();
+    }
+    draw();
+    document.body.appendChild(menu);
+    var r = trigger.getBoundingClientRect();
+    var top = r.bottom + 4;
+    if (top + menu.offsetHeight > innerHeight - 8) top = Math.max(8, r.top - menu.offsetHeight - 4);
+    menu.style.left = Math.max(8, r.right - menu.offsetWidth) + "px";
+    menu.style.top = top + "px";
+    var close = function () {
+      if (pickOpen === menu) pickOpen = null;
+      menu.remove();
+      document.removeEventListener("click", closeOnDoc);
+      document.removeEventListener("scroll", closeOnScroll, true);
+    };
+    menu.addEventListener("click", function (e) {
+      var it = e.target.closest(".menu-item");
+      e.stopPropagation();
+      if (!it) return;
+      var sec = sections[+it.getAttribute("data-s")], i = +it.getAttribute("data-i");
+      if (i === sec.selected) return;
+      sec.selected = i;
+      sec.onPick(i);
+      draw();
+    });
+    var closeOnDoc = function () { close(); };
+    var closeOnScroll = function (e) { if (menu.contains(e.target)) return; close(); };
+    setTimeout(function () {
+      document.addEventListener("click", closeOnDoc);
+      document.addEventListener("scroll", closeOnScroll, true);
+    }, 0);
+    pickOpen = menu;
+  }
   function pickMenu(trigger, options, selectedIndex, cb) {
     if (pickOpen) { pickOpen.remove(); pickOpen = null; return; }
     var menu = document.createElement("div");
@@ -1425,6 +1499,7 @@ window.QL = (function () {
   }
 
   return {
+    themesOf: themesOf, viewMenu: viewMenu, LANGS: LANGS, getLang: getLang, setLang: setLang,
     historyPanel: historyPanel,
     go: go,
     pendingFor: pendingFor, pendingTopic: pendingTopic, dropChange: dropChange, draftTag: draftTag, DRAFT_NOTE: DRAFT_NOTE,
