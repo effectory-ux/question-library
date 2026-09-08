@@ -27,9 +27,12 @@
     .tpl-head-actions { display: flex; align-items: center; gap: var(--spacing-tight); }
     .tpl-head-actions .info { display: flex; color: var(--content-secondary); cursor: help; }
     .tpl-head-actions .info i { width: 16px; height: 16px; display: flex; }
-    /* card with local tabs */
+    /* card with local tabs; the template's own actions sit on the tabs row */
     .tpl-card .card-body { padding-top: 0; }
+    .tpl-card-top { display: flex; align-items: stretch; border-bottom: 1px solid var(--border-base); }
+    .tpl-card-top .tabs { flex: 1; border-bottom: 0; }
     .tpl-tabs { padding: 0 var(--spacing-loose); }
+    .tpl-card-actions { display: flex; align-items: center; gap: var(--spacing-tight); padding: var(--spacing-tight) var(--spacing-loose); }
     /* details */
     .tpl-details { display: flex; flex-direction: column; gap: var(--spacing-loose); max-width: 960px; }
     .tpl-details[hidden] { display: none; }
@@ -121,9 +124,13 @@
 
       <!-- Details / Questions -->
       <div class="card card-outlined tpl-card">
-        <div class="tabs tpl-tabs" role="tablist">
-          <a class="tab is-active" role="tab" data-panel="details">Details</a>
-          <a class="tab" role="tab" data-panel="questions">Questions</a>
+        <div class="tpl-card-top">
+          <div class="tabs tpl-tabs" role="tablist">
+            <a class="tab is-active" role="tab" data-panel="details">Details</a>
+            <a class="tab" role="tab" data-panel="questions">Questions</a>
+          </div>
+          <!-- this template's own actions: save (for those who may edit it), publish just this template -->
+          <div class="tpl-card-actions" id="tplSave"></div>
         </div>
         <div class="card-body">
 
@@ -211,17 +218,55 @@
   else { imgEl.classList.add("is-doc"); imgEl.innerHTML = '<i data-icon="clipboard-note"></i>'; }
 
   function count() { return sections.reduce(function (n, s) { return n + s.qs.length; }, 0); }
+
+  /* ── saving: edits stage here until Save changes. Saved changes join the
+     library's list (Publish all, top right) — or go live on their own with
+     Publish template. Staged edits survive a tab switch. ── */
+  var UNS_KEY = "ql.tplUnsaved." + slug;
+  var unsaved = []; try { unsaved = JSON.parse(sessionStorage.getItem(UNS_KEY) || "[]"); } catch (e) {}
+  function stage(label) {
+    unsaved.push(label);
+    try { sessionStorage.setItem(UNS_KEY, JSON.stringify(unsaved)); } catch (e) {}
+    renderHeader();
+  }
+  function saveChanges(quiet) {
+    if (!unsaved.length) return 0;
+    var n = unsaved.length;
+    unsaved.forEach(function (l) { QL.trackChange(l, { tpl: slug }); });
+    unsaved = []; try { sessionStorage.removeItem(UNS_KEY); } catch (e) {}
+    if (!quiet) QL.notify("Changes saved", "Publish this template on its own, or everything at once with Publish all.");
+    renderHeader();
+    return n;
+  }
+  function publishThis() {
+    saveChanges(true);
+    if (!QL.publishTemplate(slug, t.name)) QL.notify("Nothing to publish", "This template has no unpublished changes.");
+    renderHeader();
+  }
+
   function renderHeader() {
     document.getElementById("tplName").textContent = t.name;
     var a = document.getElementById("tplActions");
     a.innerHTML =
       '<span class="info" data-tt="' + (t.custom ? "Custom template" : "Standard template") + ' · ' + count() + ' questions"><i data-icon="info"></i></span>' +
-      QL.tplStatusTag(QL.getTemplate(slug) || t) +
-      /* one publish for everything: template changes go through the same dialog */
+      (unsaved.length ? '<span class="tag tag-warning">Unsaved changes</span>' : QL.tplStatusTag(QL.getTemplate(slug) || t)) +
+      /* top right, always: everything that is saved but not live yet */
       '<button class="ib ib-36 ib-secondary" id="btnHistory" aria-label="Version history" data-tt="Version history"><i data-icon="version-history"></i></button>' +
-      '<button class="btn btn-primary" id="btnPublish"><i data-icon="send"></i> Publish</button>' +
+      '<button class="btn btn-primary" id="btnPublish"><i data-icon="send"></i> Publish all</button>' +
       '<button class="ib ib-36 ib-tertiary" id="tplKebab" aria-label="More options" data-tt="More options"><i data-icon="more-vertical"></i></button>';
     QL.initPublish();
+    /* the template's own actions, only for those who may edit it */
+    var sv = document.getElementById("tplSave");
+    if (sv) {
+      var pend = QL.tplPending(slug).length, canPub = unsaved.length || pend;
+      sv.innerHTML = editable
+        ? '<button class="btn btn-primary' + (unsaved.length ? "" : " is-disabled") + '" id="btnSaveTpl"' + (unsaved.length ? "" : " disabled") + ">Save changes</button>" +
+          '<button class="btn btn-secondary' + (canPub ? "" : " is-disabled") + '" id="btnPublishTpl"' + (canPub ? "" : " disabled") +
+          ' data-tt="Make only this template live for everyone"><i data-icon="send"></i> Publish template</button>'
+        : "";
+      var bs = sv.querySelector("#btnSaveTpl"); if (bs) bs.addEventListener("click", function () { saveChanges(); });
+      var bp = sv.querySelector("#btnPublishTpl"); if (bp) bp.addEventListener("click", publishThis);
+    }
     document.addEventListener("ql:published", renderHeader, { once: true });
     a.querySelector("#tplKebab").addEventListener("click", function (e) {
       QL.pickMenu(e.currentTarget, ["Duplicate template"], -1, function () {
@@ -269,14 +314,14 @@
       var was = t.name;
       t.name = v;
       QL.setTplName(slug, v);
-      QL.trackChange("Template “" + v + "”: renamed from “" + was + "”", { tpl: slug });
+      stage("Template “" + v + "”: renamed from “" + was + "”");
       renderHeader();
     });
     var descTracked = false;
     rteBody.addEventListener("input", function () {
       if (descTracked) return;
       descTracked = true;
-      QL.trackChange(tplLabel("description edited"), { tpl: slug });
+      stage(tplLabel("description edited"));
       renderHeader();
     });
     document.getElementById("rteToolbar").addEventListener("click", function (e) {
@@ -352,7 +397,7 @@
         e.stopPropagation();
         QL.pickMenu(e.currentTarget, ["Remove from template"], -1, function () {
           s.qs.splice(s.qs.indexOf(q), 1);
-          QL.trackChange(tplLabel("removed “" + tshort(q.text) + "”"), { tpl: slug });
+          stage(tplLabel("removed “" + tshort(q.text) + "”"));
           QL.notify("Question removed from this template");
           renderHeader();
           renderSections();
@@ -376,7 +421,7 @@
         if (!dragging || dragging === row || dragging.parentElement !== row.parentElement) return;
         var from = +dragging.getAttribute("data-q"), to = +row.getAttribute("data-q");
         s.qs.splice(to, 0, s.qs.splice(from, 1)[0]);
-        QL.trackChange(tplLabel("questions reordered"), { tpl: slug });
+        stage(tplLabel("questions reordered"));
         renderHeader();
         renderSections();
       });
@@ -419,7 +464,7 @@
           var s = sections.filter(function (x) { return x.name === nq.topic; })[0];
           if (!s) { s = { name: nq.topic || "New questions", qs: [] }; sections.push(s); }
           s.qs.push({ text: nq.text, type: nq.type, custom: true });
-          QL.trackChange(tplLabel("added “" + tshort(nq.text) + "”"), { tpl: slug });
+          stage(tplLabel("added “" + tshort(nq.text) + "”"));
           if (nq.also) {
             QL.libAdd({ text: nq.text, type: nq.type, topic: "", added: "Today", usedIn: [] });
             QL.trackChange("Added “" + tshort(nq.text) + "” to the library");
@@ -467,7 +512,7 @@
         b.addEventListener("click", function () {
           var q = pool[+b.getAttribute("data-add")];
           targetSection().qs.push({ text: q.text, type: q.type, custom: false });
-          QL.trackChange(tplLabel("added “" + tshort(q.text) + "”"), { tpl: slug });
+          stage(tplLabel("added “" + tshort(q.text) + "”"));
           renderHeader();
           renderList();
           renderSections();

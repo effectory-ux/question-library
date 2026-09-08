@@ -343,7 +343,62 @@ window.QLQ = (function () {
         '<div class="inline-notif-content"><span class="inline-notif-text">' +
         '<span class="inline-notif-title">The library already has a similar question</span> ' +
         '<span class="inline-notif-msg">“' + esc(window.QL ? QL.fill(s0.text) : s0.text) + "” · " + (s0.bench ? "Standard" : "Custom") + ". You can still add this one.</span>" +
-        "</span></div></div>";
+        "</span>" +
+        (opts.onLink && s0.bench ? '<div class="inline-notif-actions"><button class="btn btn-secondary" data-link-top>Request link to this question</button></div>' : "") +
+        "</div></div>";
+      var lt = overlay.querySelector("[data-link-top]");
+      if (lt) lt.addEventListener("click", function () { requestLink(s0); });
+    }
+
+    /* ── linking to a standard question: the custom wording would count toward
+       a standard question and its benchmark. That is Effectory's call (the
+       benchmark must stay clean), so the coordinator requests it. ── */
+    function requestLink(target) {
+      close();
+      opts.onLink({ text: target.text, topic: target.topic || "" });
+    }
+    function openLinkPicker() {
+      var pool = (opts.linkPool || []).slice();
+      var near = similarScored(st.text, pool, pool.length, 0.0001).map(function (m) { return m.q; });
+      var rest = pool.filter(function (q) { return near.indexOf(q) === -1; })
+        .sort(function (a, b) { return a.text.localeCompare(b.text); });
+      var items = near.concat(rest), picked = near[0] || null, term = "";
+      var d = el(
+        '<div class="overlay" style="z-index:70;"><div class="dialog dialog-s" role="dialog" aria-modal="true" aria-labelledby="lk-title">' +
+        '<button class="dialog-close" aria-label="Close" data-tt="Close"><i data-icon="cross"></i></button>' +
+        '<div class="dialog-header is-sm"><div class="dialog-header-top"><h3 class="dialog-title" id="lk-title">Link to a standard question</h3></div>' +
+        '<p class="dialog-subtitle">Ask Effectory to count this question toward a standard question and its benchmark. Effectory checks the match first, so the benchmark stays clean.</p></div>' +
+        '<div class="dialog-body lk-body">' +
+        '<div class="search-wrap lk-search"><span class="search-icon"><i data-icon="search"></i></span><input type="search" class="srch" placeholder="Search standard questions" aria-label="Search standard questions" /></div>' +
+        '<div class="lk-list" role="radiogroup" aria-label="Standard questions"></div></div>' +
+        '<div class="dialog-footer"><button class="btn btn-secondary" data-cancel>Cancel</button>' +
+        '<button class="btn btn-primary" data-go>Request link</button></div>' +
+        "</div></div>"
+      );
+      document.body.appendChild(d);
+      var list = d.querySelector(".lk-list"), go = d.querySelector("[data-go]");
+      function renderList() {
+        var shown = items.filter(function (q) { return !term || (window.QL ? QL.fill(q.text) : q.text).toLowerCase().indexOf(term) !== -1; }).slice(0, 40);
+        list.innerHTML = shown.length ? shown.map(function (q, i) {
+          var on = q === picked;
+          return '<label class="lk-opt' + (on ? " is-on" : "") + '"><span class="rb-wrap"><input type="radio" class="rb" name="lk" data-i="' + i + '"' + (on ? " checked" : "") + " /></span>" +
+            '<span class="lk-text">' + esc(window.QL ? QL.fill(q.text) : q.text) + "</span>" +
+            (q.topic ? '<span class="lk-topic">' + esc(q.topic) + "</span>" : "") + "</label>";
+        }).join("") : '<p class="lk-empty">We couldn’t find any matches for “' + esc(term) + '”</p>';
+        list.querySelectorAll("input").forEach(function (inp) {
+          inp.addEventListener("change", function () { picked = shown[+inp.getAttribute("data-i")]; renderList(); });
+        });
+        go.disabled = !picked; go.classList.toggle("is-disabled", !picked);
+      }
+      renderList();
+      d.querySelector(".srch").addEventListener("input", function (e) { term = e.target.value.trim().toLowerCase(); renderList(); });
+      var closePicker = function () { QL.closeOverlay(d); };
+      d.querySelector(".dialog-close").addEventListener("click", closePicker);
+      d.querySelector("[data-cancel]").addEventListener("click", closePicker);
+      d.addEventListener("mousedown", function (e) { if (e.target === d) closePicker(); });
+      go.addEventListener("click", function () { if (!picked) return; closePicker(); requestLink(picked); });
+      setTimeout(function () { d.querySelector(".srch").focus({ preventScroll: true }); }, 60);
+      icons();
     }
 
     function close() { QL.closeOverlay(overlay); timers.forEach(clearTimeout); clearTimeout(checkTimer); }
@@ -898,8 +953,11 @@ window.QLQ = (function () {
         /* review mode: no delete, no save — the outcome is adding to the library */
         f.innerHTML = '<span class="spacer"></span>' +
           '<span class="cq-bench-note"><i data-icon="info"></i>Custom questions do not have a benchmark comparison in the results</span>' +
+          (opts.onLink ? '<button class="btn btn-secondary" data-link>Link to a standard question</button>' : "") +
           '<button class="btn btn-secondary" data-cancel>Cancel</button>' +
           '<button class="btn btn-primary" data-primary>Add to library</button>';
+        var lk = f.querySelector("[data-link]");
+        if (lk) lk.addEventListener("click", openLinkPicker);
         f.querySelector("[data-primary]").addEventListener("click", function () {
           st.attempted = true;
           renderTopicErr(); renderPreview();

@@ -777,7 +777,7 @@ window.QL = (function () {
     var n = changesCount();
     b.disabled = !n;
     b.classList.toggle("is-disabled", !n);
-    b.innerHTML = '<i data-icon="send"></i> Publish' + (n ? " (" + n + ")" : "");
+    b.innerHTML = '<i data-icon="send"></i> Publish all' + (n ? " (" + n + ")" : "");
     b.setAttribute("data-tt", lastPublished());
     if (window.Icons) window.Icons.render();
   }
@@ -876,6 +876,26 @@ window.QL = (function () {
           ? "Everyone creating surveys sees your updated library. Your other changes stay saved here until you publish them."
           : "Everyone creating surveys and templates now works with your updated library.");
     });
+  }
+  /* publish a subset right away — pred(change) says which; used by Publish
+     template. Same bookkeeping as the dialog: log, statuses, event, button. */
+  function publishChanges(pred) {
+    var l = changesList(), done = [], keep = [];
+    l.forEach(function (c) { (pred(c) ? done : keep).push(c); });
+    if (!done.length) return 0;
+    saveChangesList(keep);
+    done.forEach(function (c) { if (c && c.meta && c.meta.tpl && c.meta.kind === "create") setTplStatus(c.meta.tpl, "published"); });
+    logPublish(done);
+    document.dispatchEvent(new CustomEvent("ql:published", { detail: { published: done, kept: keep } }));
+    updatePublish();
+    return done.length;
+  }
+  function publishTemplate(slug, name) {
+    var n = publishChanges(function (c) { return c && c.meta && c.meta.tpl === slug; });
+    if (!n) return 0;
+    setTplStatus(slug, "published");
+    notify("Template published", "Everyone who creates surveys now works with the latest " + (name ? "“" + fill(name) + "”" : "version") + ". Your other changes stay saved until you publish them.");
+    return n;
   }
   function initPublish() {
     var b = document.getElementById("btnPublish");
@@ -1499,6 +1519,7 @@ window.QL = (function () {
   }
 
   return {
+    publishChanges: publishChanges, publishTemplate: publishTemplate, tplPending: tplPending,
     themesOf: themesOf, viewMenu: viewMenu, LANGS: LANGS, getLang: getLang, setLang: setLang,
     historyPanel: historyPanel,
     go: go,

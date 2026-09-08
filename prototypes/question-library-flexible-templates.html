@@ -171,7 +171,12 @@
       });
       row.querySelector("[data-kebab]").addEventListener("click", function (e) {
         e.stopPropagation();
-        QL.pickMenu(e.currentTarget, ["Duplicate template"], -1, function () { duplicate(slug); });
+        var tpl = QL.allTemplates().filter(function (x) { return x.slug === slug; })[0];
+        var items = ["Duplicate template"].concat(QL.tplPending(slug).length ? ["Publish template"] : []);
+        QL.pickMenu(e.currentTarget, items, -1, function (i) {
+          if (i === 0) duplicate(slug);
+          else { QL.publishTemplate(slug, tpl && tpl.name); render(); }
+        });
       });
     });
     if (window.Icons) window.Icons.render();

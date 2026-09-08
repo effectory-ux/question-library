@@ -694,3 +694,16 @@ button.sel-btn.cq-sel { font-size: 14px; }
 /* a topic suggested from the wording, and the "library already has this" note */
 .cq-topic-hint { margin-top: 4px; font-size: 12px; line-height: 1.5; color: var(--content-secondary); }
 .cq-sim { margin-bottom: var(--spacing-base); }
+
+/* link to a standard question: the picker (dialog-s) and the notice's action */
+.cq-sim .inline-notif-actions { margin-top: var(--spacing-tight); }
+.lk-body { display: flex; flex-direction: column; gap: var(--spacing-base-tight); }
+.lk-search { width: 100%; margin: 0; }
+.lk-list { display: flex; flex-direction: column; gap: var(--spacing-extra-tight); max-height: 320px; overflow-y: auto; }
+.lk-opt { display: flex; align-items: flex-start; gap: var(--spacing-tight); padding: var(--spacing-tight) var(--spacing-base-tight);
+  border: 1px solid var(--border-primary); border-radius: var(--radius-base); background: var(--bg-base); cursor: pointer; font-size: 14px; line-height: 1.5; color: var(--content-base); }
+.lk-opt.is-on { border-color: var(--border-brand, var(--content-brand)); background: var(--bg-brand-subtle); }
+.lk-opt .rb-wrap { margin-top: 1px; }
+.lk-text { flex: 1; }
+.lk-topic { flex: none; font-size: 12px; color: var(--content-secondary); }
+.lk-empty { margin: var(--spacing-tight) 0; font-size: 14px; color: var(--content-secondary); }

@@ -22,11 +22,13 @@
     .ib-intro { margin: 0 0 var(--spacing-base); color: var(--content-secondary); }
     .ib-meta { display: block; margin-top: var(--spacing-extra-tight); font-size: 12px; color: var(--content-secondary); }
     .ib-row .btn { flex: none; }
-    #inboxList .ib-row.is-stack { cursor: pointer; }
-    #inboxList .ib-row.is-stack:hover { background: var(--bg-base-hover); }
-    .ib-stack-tile { flex: none; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: var(--radius-base); background: var(--bg-brand-subtle); color: var(--content-brand); }
-    .ib-stack-tile i { display: flex; width: 16px; height: 16px; }
-    .ib-title-row { display: flex; align-items: center; gap: var(--spacing-tight); flex-wrap: wrap; }
+    /* the list: runs of single rows, and similar questions together in a grey
+       container that reads as a list of its own — every question stays visible */
+    .ib-list { display: flex; flex-direction: column; gap: var(--spacing-base); }
+    .ib-group { padding: var(--spacing-base-tight); background: var(--bg-secondary); border-radius: var(--radius-md); }
+    .ib-group-head { display: flex; align-items: center; gap: var(--spacing-tight); padding: 0 var(--spacing-tight) var(--spacing-tight); }
+    .ib-group-title { flex: 1; color: var(--content-secondary); }
+    .ib-row .tag { flex: none; }
     /* AI summary — the results dashboard's component (reference: effectiveness-overview) */
     .ai-summary { margin: 0 0 var(--spacing-loose); background: var(--bg-base); border: 1px solid var(--border-info-subtle); border-radius: var(--radius-lg); box-shadow: var(--sh-card); padding: var(--spacing-loose); }
     .ai-head { display: flex; align-items: center; gap: var(--spacing-base-tight); margin-bottom: var(--spacing-base); }
@@ -136,7 +138,7 @@
 
       <!-- The incoming list -->
       <div class="q-topic">
-        <div class="q-list" id="inboxList"></div>
+        <div class="ib-list" id="inboxList"></div>
         <p class="text-medium" id="noResults" hidden style="color: var(--content-secondary); margin: var(--spacing-base-tight) 0 0;">No questions match your search.</p>
         <p class="text-medium" id="emptyInbox" hidden style="color: var(--content-secondary); margin: var(--spacing-base-tight) 0 0;">No new questions from surveys. Questions people create in their surveys show up here.</p>
       </div>
@@ -154,6 +156,10 @@
   var emptyInbox = document.getElementById("emptyInbox");
   var term = "";
   var dismissed = {}; // "keep separate" choices, per visit
+  /* link requests: a custom wording that should count toward a standard
+     question — Effectory decides, so it is a request, remembered here */
+  var linkReq = {}; try { linkReq = JSON.parse(sessionStorage.getItem("ql.linkReq") || "{}"); } catch (e) {}
+  function saveLinkReq() { try { sessionStorage.setItem("ql.linkReq", JSON.stringify(linkReq)); } catch (e) {} }
 
   /* working copy, most-used first: usage is the promotion argument */
   var items = QL.inboxQuestions().slice().sort(function (a, b) { return (b.uses || 0) - (a.uses || 0); });
@@ -163,6 +169,9 @@
   QL.TOPICS.forEach(function (t) { t.qs.forEach(function (q) { libPool.push({ text: QL.fill(q[0]), bench: true }); }); });
   QL.libraryCustom().forEach(function (c) { libPool.push({ text: QL.fill(c.text), bench: false }); });
   function libSimilar(q) { return QLQ.similar(QL.fill(q.text), libPool, 2, 0.5); }
+  /* the standard questions a custom one can be linked to, with their topic */
+  var linkPool = [];
+  QL.TOPICS.forEach(function (t) { t.qs.forEach(function (q) { linkPool.push({ text: q[0], topic: t.name, bench: true }); }); });
   function short(t) { t = QL.fill(t); return t.length > 48 ? t.slice(0, 45) + "…" : t; }
   function uses(q) { if (q.where) return q.where; return (q.uses || 0) === 1 ? "Used in 1 survey" : "Used in " + (q.uses || 0) + " surveys"; }
 
@@ -263,39 +272,43 @@
     var groupOf = {};
     clusters.forEach(function (g, gi) { g.forEach(function (q) { groupOf[q.text] = gi; }); });
 
-    var emitted = {}, html = [];
+    /* one row; inside a group it carries the Similar tag (right, before the type) */
+    function rowHTML(q, inGroup) {
+      var i = items.indexOf(q), req = linkReq[q.text];
+      var lib = !req && libSimilar(q).length ? ' · <button class="ib-sim" data-promote="' + i + '">Similar to a library question</button>' : "";
+      return '<div class="q-row ib-row">' +
+        '<div class="text-medium text-w500 q-text" style="flex:1;">' + QL.hl(q.text, term) +
+        '<span class="ib-meta text-w400">' + uses(q) + " · " + QL.esc(q.by) + " · Added " + QL.esc(q.added) + lib +
+        (req ? " · Link to “" + QL.esc(short(req)) + "” requested" : "") + "</span></div>" +
+        (req ? '<span class="tag tag-warning" data-tt="Effectory checks the match so the benchmark stays clean">Link requested</span>' : "") +
+        (inGroup ? '<span class="tag tag-brand">Similar</span>' : "") +
+        QL.scaleChip(q.type) +
+        (req ? "" : '<button class="btn btn-secondary" data-promote="' + i + '">Review</button>') +
+        '<button class="ib ib-24 ib-tertiary" data-more="' + i + '" aria-label="More options" data-tt="More options"><i data-icon="more-vertical"></i></button>' +
+        "</div>";
+    }
+    var emitted = {}, html = [], run = [];
+    function flush() { if (run.length) { html.push('<div class="q-list">' + run.join("") + "</div>"); run = []; } }
     items.forEach(function (q) {
       var gi = groupOf[q.text];
       if (gi !== undefined) {
         if (emitted[gi]) return;
-        var g = clusters[gi];
-        if (!g.some(function (x) { return QL.matches(x.text, term); })) return;
         emitted[gi] = true;
-        var main = g[0], useSum = g.reduce(function (sum, x) { return sum + (x.uses || 0); }, 0);
-        var people = {}; g.forEach(function (x) { people[x.by] = true; });
-        html.push('<div class="q-row ib-row is-stack" data-group="' + gi + '">' +
-          '<span class="ib-stack-tile"><i data-icon="copy"></i></span>' +
-          '<div class="text-medium text-w500 q-text" style="flex:1;"><span class="ib-title-row">' + QL.hl(main.text, term) +
-          '<span class="tag tag-brand">' + plural(g.length, "similar question", "similar questions") + "</span></span>" +
-          '<span class="ib-meta text-w400">' + (useSum === 1 ? "Used in 1 survey" : "Used in " + useSum + " surveys") + " · " + plural(Object.keys(people).length, "person", "people") + "</span>" +
-          '<span class="ib-meta text-w400">Also asked as ' + joinAnd(g.slice(1).map(function (x) { return "“" + QL.esc(short(x.text)) + "”"; })) + "</span></div>" +
-          QL.scaleChip(main.type) +
-          '<button class="btn btn-secondary" data-review-group="' + gi + '">Review</button>' +
-          '<button class="ib ib-24 ib-tertiary" data-more-group="' + gi + '" aria-label="More options" data-tt="More options"><i data-icon="more-vertical"></i></button>' +
-          "</div>");
+        var g = clusters[gi];
+        var members = g.filter(function (x) { return QL.matches(x.text, term); });
+        if (!members.length) return;
+        flush();
+        html.push('<div class="ib-group" data-group="' + gi + '">' +
+          '<div class="ib-group-head"><span class="text-small ib-group-title">' + g.length + " questions look similar</span>" +
+          '<button class="btn btn-tertiary" data-keep-group="' + gi + '">Keep separate</button>' +
+          '<button class="btn btn-secondary" data-review-group="' + gi + '">Review together</button></div>' +
+          '<div class="q-list">' + members.map(function (x) { return rowHTML(x, true); }).join("") + "</div></div>");
         return;
       }
       if (!QL.matches(q.text, term)) return;
-      var i = items.indexOf(q);
-      var lib = libSimilar(q).length ? ' · <button class="ib-sim" data-promote="' + i + '">Similar to a library question</button>' : "";
-      html.push('<div class="q-row ib-row">' +
-        '<div class="text-medium text-w500 q-text" style="flex:1;">' + QL.hl(q.text, term) +
-        '<span class="ib-meta text-w400">' + uses(q) + " · " + QL.esc(q.by) + " · Added " + QL.esc(q.added) + lib + "</span></div>" +
-        QL.scaleChip(q.type) +
-        '<button class="btn btn-secondary" data-promote="' + i + '">Review</button>' +
-        '<button class="ib ib-24 ib-tertiary" data-more="' + i + '" aria-label="More options" data-tt="More options"><i data-icon="more-vertical"></i></button>' +
-        "</div>");
+      run.push(rowHTML(q, false));
     });
+    flush();
     listEl.innerHTML = html.join("");
     noResults.hidden = !term || !!html.length;
     emptyInbox.hidden = !!items.length;
@@ -303,28 +316,15 @@
     listEl.querySelectorAll("[data-promote]").forEach(function (b) {
       b.addEventListener("click", function () { promoteDialog(items[+b.getAttribute("data-promote")]); });
     });
-    /* a stack opens the choice of main wording */
-    listEl.querySelectorAll(".is-stack").forEach(function (row) {
-      var g = clusters[+row.getAttribute("data-group")];
-      row.addEventListener("click", function (e) { if (e.target.closest("button")) return; suggestDialog(g); });
-    });
+    /* a group: review together (choose the main wording), or keep separate */
     listEl.querySelectorAll("[data-review-group]").forEach(function (b) {
       b.addEventListener("click", function () { suggestDialog(clusters[+b.getAttribute("data-review-group")]); });
     });
-    listEl.querySelectorAll("[data-more-group]").forEach(function (b) {
-      b.addEventListener("click", function (e) {
-        e.stopPropagation();
-        var g = clusters[+b.getAttribute("data-more-group")];
-        QL.pickMenu(b, ["Keep separate", "Keep out of the library"], -1, function (i) {
-          if (i === 0) {
-            g.forEach(function (q) { dismissed[q.text] = true; });
-            QL.notify("Kept separate", "The wordings stay in this list as questions of their own.");
-          } else {
-            removeFromInbox(g.map(function (q) { return q.text; }));
-            QL.notify("Kept out of the library", "They keep working in the surveys that use them and won't show here again.");
-          }
-          render();
-        });
+    listEl.querySelectorAll("[data-keep-group]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        clusters[+b.getAttribute("data-keep-group")].forEach(function (q) { dismissed[q.text] = true; });
+        QL.notify("Kept separate", "The questions stay in this list on their own.");
+        render();
       });
     });
     /* the exit that isn't the library: leave the question where it is */
@@ -332,9 +332,15 @@
       b.addEventListener("click", function (e) {
         e.stopPropagation();
         var q = items[+b.getAttribute("data-more")];
-        QL.pickMenu(b, ["Keep out of the library"], -1, function () {
-          removeFromInbox([q.text]);
-          QL.notify("Kept out of the library", "It keeps working in the surveys that use it and won't show here again.");
+        var opts = (linkReq[q.text] ? ["Withdraw link request"] : []).concat(["Keep out of the library"]);
+        QL.pickMenu(b, opts, -1, function (i) {
+          if (opts[i] === "Withdraw link request") {
+            delete linkReq[q.text]; saveLinkReq();
+            QL.notify("Link request withdrawn");
+          } else {
+            removeFromInbox([q.text]);
+            QL.notify("Kept out of the library", "It keeps working in the surveys that use it and won't show here again.");
+          }
           render();
         });
       });
@@ -382,6 +388,12 @@
       {
         standard: false, topics: topicNames, topicOptional: true, pool: [], suggestTopic: true,
         review: { uses: q.uses || 0, by: q.by, similar: libSimilar(q) },
+        linkPool: linkPool,
+        onLink: function (target) {
+          linkReq[q.text] = target.text; saveLinkReq();
+          QL.notify("Link requested", "Effectory checks whether “" + short(q.text) + "” can count toward “" + short(target.text) + "”. It keeps working in its surveys meanwhile.");
+          render();
+        },
         onConfirm: function (u) {
           QL.libAdd({ text: u.text, type: u.type, topic: u.topic || "", added: "Today", usedIn: [] });
           removeFromInbox([q.text]);
