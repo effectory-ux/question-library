@@ -625,11 +625,15 @@ window.QL = (function () {
     return overlay;
   }
   function closeOverlay(overlay) {
+    if (overlay.classList.contains("is-closing")) return;
     overlay.classList.add("is-closing");
     var surface = overlay.querySelector(".sidepanel, .dialog");
-    var done = function () { overlay.remove(); };
+    var removed = false;
+    var done = function () { if (removed) return; removed = true; overlay.remove(); };
     if (surface && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
       surface.addEventListener("animationend", done, { once: true });
+      /* a hidden or throttled tab may never play the exit animation: don't leave the overlay behind */
+      setTimeout(done, 700);
     } else { done(); }
   }
   document.addEventListener("keydown", function (e) {
