@@ -11,8 +11,7 @@ release line; `toolbar/version.json` says which release. Rules:
   Or put that clone's working tree in here with `./toolbar.sh vendor question-library`
   (from the clone): `toolbar/version.json` then has an empty `tag`, meaning an
   unreleased build; the next `toolbar/update.sh` replaces it with the release.
-- This prototype's own settings for the bar (key, screens, versions, edge
-  cases) live in `prototypes/question-library-toolbar.js`, outside that folder.
+- This prototype's own settings for the bar (screens, versions, edge cases) live in `prototypes/question-library-toolbar.js`, outside that folder.
 - Deployed, a page loads the published toolbar first and this copy only as a
   fallback; on localhost this copy comes first. The bar shows **Update** when
   the copy is behind: run `toolbar/update.sh` and commit the result.

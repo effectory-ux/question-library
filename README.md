@@ -24,9 +24,9 @@ Two design versions are in the repo; the toolbar switches between them:
 - **Tester / participant link** (no toolbar):
   `https://effectory-ux.github.io/question-library/`
 - **Colleague link** (with the prototype toolbar — versions, screens, edge
-  cases): `https://effectory-ux.github.io/question-library/?ql-3a7k-toolbar-active`
+  cases): `https://effectory-ux.github.io/question-library/?prototype-toolbar`
 
-On localhost the same rule applies: add `?ql-3a7k-toolbar-active` to see the
+On localhost the same rule applies: add `?prototype-toolbar` to see the
 toolbar, leave it off to see what a tester sees. See
 [prototype-toolbar](https://github.com/effectory-ux/prototype-toolbar) for the
 link contract.

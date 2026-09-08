@@ -15,7 +15,6 @@
   var flex = isFlex(new URL(location.href));
 
   window.PROTO_TOOLBAR = {
-    key: "ql-3a7k",            // the ?<key>-toolbar-active gate of the live site
     prefix: "ql",              // localStorage namespace (ql.edge.seed is read by question-library-shared.js)
     name: "Question library",
     live: "https://effectory-ux.github.io/question-library/",
