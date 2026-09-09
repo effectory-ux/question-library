@@ -461,6 +461,7 @@
       '<button class="btn btn-primary" id="atAdd">Add topic</button></div>' +
       "</div></div>"
     );
+    QL.dialogOpened("add-topic", overlay);
     overlay.querySelector("#atName").focus();
     overlay.querySelector("#atAdd").addEventListener("click", function () {
       var name = overlay.querySelector("#atName").value.trim();
@@ -502,7 +503,7 @@
   document.addEventListener("ql:published", render);
 
   /* deep link from the toolbar's Screens: open a dialog on arrival */
-  if (new URLSearchParams(location.search).get("open") === "add-question") setTimeout(addQuestionDialog, 80);
+  if (QL.dialogFromURL() === "add-question") setTimeout(addQuestionDialog, 80);
 })();
 </script>
 </body>

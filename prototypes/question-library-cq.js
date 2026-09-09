@@ -332,6 +332,8 @@ window.QLQ = (function () {
       "</div></div>"
     );
     document.body.appendChild(overlay);
+    /* the address names the open dialog, like the product's (dialog:…) routes */
+    if (window.QL && QL.dialogOpened) QL.dialogOpened(opts.dialog || (opts.review ? "review-question" : editing ? "question-settings" : "add-question"), overlay);
 
     /* review mode: the library may already have this question in other words —
        said once, up top; the decision stays with the coordinator */
@@ -376,6 +378,7 @@ window.QLQ = (function () {
         "</div></div>"
       );
       document.body.appendChild(d);
+      QL.dialogOpened("link-question", d);
       var list = d.querySelector(".lk-list"), go = d.querySelector("[data-go]");
       function renderList() {
         var shown = items.filter(function (q) { return !term || (window.QL ? QL.fill(q.text) : q.text).toLowerCase().indexOf(term) !== -1; }).slice(0, 40);

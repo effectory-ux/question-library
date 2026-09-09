@@ -252,6 +252,7 @@
       '<div class="dialog-footer"><button class="btn btn-secondary" data-close>Close</button></div>' +
       "</div></div>"
     );
+    QL.dialogOpened("approval", overlay);
     var listEl = overlay.querySelector("#apDlgList");
 
     function renderList() {
@@ -319,6 +320,7 @@
       '<button class="btn btn-primary" id="atAdd">Add topic</button></div>' +
       "</div></div>"
     );
+    QL.dialogOpened("approval", overlay);
     overlay.querySelector("#atName").focus();
     overlay.querySelector("#atAdd").addEventListener("click", function () {
       var name = overlay.querySelector("#atName").value.trim();

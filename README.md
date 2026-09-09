@@ -26,6 +26,12 @@ Two design versions are in the repo; the toolbar switches between them:
 - **Colleague link** (with the prototype toolbar — versions, screens, edge
   cases): `https://effectory-ux.github.io/question-library/?prototype-toolbar`
 
+**Dialogs are part of the address**, the way the product routes them:
+`…/question-library-questions.html(dialog:add-question)`. Opening a dialog
+writes it into the URL, closing removes it, and such a link opens the page
+with the dialog. Static hosting can't serve that path as a file, so `serve.py`
+strips the suffix locally and `404.html` does the same on GitHub Pages.
+
 On localhost the same rule applies: add `?prototype-toolbar` to see the
 toolbar, leave it off to see what a tester sees. See
 [prototype-toolbar](https://github.com/effectory-ux/prototype-toolbar) for the

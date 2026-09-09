@@ -211,6 +211,7 @@
       '<button class="btn btn-primary" id="ctCreate">Create template</button></div>' +
       "</div></div>"
     );
+    QL.dialogOpened("duplicate-template", overlay);
     overlay.querySelector("#ctName").focus();
     overlay.querySelector("#ctCreate").addEventListener("click", function () {
       var name = overlay.querySelector("#ctName").value.trim();

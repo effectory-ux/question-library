@@ -479,7 +479,7 @@
   }
   addBtn.addEventListener("click", function (e) { addMenu(e.currentTarget); });
   /* deep link from the toolbar's Screens */
-  if (new URLSearchParams(location.search).get("open") === "add-question") setTimeout(writeNewQuestion, 120);
+  if (QL.dialogFromURL() === "add-question") setTimeout(writeNewQuestion, 120);
 
   function fromLibraryDialog() {
     var overlay = QL.openOverlay(
@@ -495,6 +495,7 @@
       '<div class="dialog-footer"><button class="btn btn-primary" data-close>Done</button></div>' +
       "</div></div>"
     );
+    QL.dialogOpened("add-from-library", overlay);
     var pool = libraryPool();
     var flTerm = "";
     var listEl = overlay.querySelector("#flList");

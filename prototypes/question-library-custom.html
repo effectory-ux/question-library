@@ -456,6 +456,7 @@
       '<button class="btn btn-primary" id="sgGo">Combine and add</button></div>' +
       "</div></div>"
     );
+    QL.dialogOpened("combine-questions", overlay);
     var opts = overlay.querySelector("#sgOpts");
     var topicMount = overlay.querySelector("#sgTopic");
     var btnKeep = overlay.querySelector("#sgKeep");
@@ -592,9 +593,9 @@
   render();
 
   /* deep links from the toolbar's Screens: open a dialog on arrival */
-  var openParam = new URLSearchParams(location.search).get("open");
-  if (openParam === "review" && items.length) setTimeout(function () { promoteDialog(items[0]); }, 80);
-  if (openParam === "suggestions") setTimeout(suggestDialog, 80);
+  var openParam = QL.dialogFromURL();
+  if ((openParam === "review-question" || openParam === "review") && items.length) setTimeout(function () { promoteDialog(items[0]); }, 80);
+  if (openParam === "combine-questions" || openParam === "suggestions") setTimeout(suggestDialog, 80);
 })();
 </script>
 </body>

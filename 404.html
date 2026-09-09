@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Question library V3</title>
+  <!-- GitHub Pages serves this for any path that is not a file. A dialog address,
+       /page.html(dialog:name), is such a path: send it to the page with the dialog
+       as ?open=name; the page opens it and writes the canonical address back. -->
+  <script>
+    (function () {
+      var p = decodeURIComponent(location.pathname), m = p.match(/\(dialog:([^)]+)\)/);
+      if (!m) return;
+      var base = p.replace(/\(dialog:[^)]+\)/, "");
+      var q = location.search ? location.search + "&" : "?";
+      location.replace(base + q + "open=" + encodeURIComponent(m[1]) + location.hash);
+    })();
+  </script>
+</head>
+<body>
+  <p>This page doesn't exist. <a href="/question-library/">Open the Question library prototype</a></p>
+</body>
+</html>

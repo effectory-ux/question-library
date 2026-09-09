@@ -612,11 +612,43 @@ window.QL = (function () {
   injectCSS();
 
   /* ── overlay open/close with the DS exit animation (SKILL rule 9) ── */
-  function openOverlay(html) {
+  /* ── dialog URLs: while a dialog is open the address carries it the way the
+     product does — /page(dialog:name)?query — so every dialog is a shareable
+     screen. Static hosting can't serve that path itself: serve.py strips the
+     suffix, and on GitHub Pages 404.html turns it into ?open=name, which the
+     page reads and rewrites back to the canonical form. ── */
+  var DLG_RE = /\(dialog:([^)]+)\)/;
+  function dialogFromURL() {
+    var m = decodeURIComponent(location.pathname).match(DLG_RE);
+    if (m) return m[1];
+    try { return new URLSearchParams(location.search).get("open"); } catch (e) { return null; }
+  }
+  function urlWithDialog(name) {
+    var path = decodeURIComponent(location.pathname).replace(DLG_RE, "");
+    var search = location.search.replace(/([?&])open=[^&]*&?/, "$1").replace(/[?&]$/, "");
+    return path + (name ? "(dialog:" + name + ")" : "") + search + location.hash;
+  }
+  var dialogStack = [];
+  function dialogOpened(name, overlay) {
+    if (!name) return;
+    if (overlay && overlay.dataset) overlay.dataset.dialog = name;
+    dialogStack.push(name);
+    try { history.replaceState(history.state, "", urlWithDialog(name)); } catch (e) {}
+  }
+  function dialogClosed(name) {
+    if (!name) return;
+    var i = dialogStack.lastIndexOf(name);
+    if (i !== -1) dialogStack.splice(i, 1);
+    try { history.replaceState(history.state, "", urlWithDialog(dialogStack[dialogStack.length - 1] || "")); } catch (e) {}
+  }
+  var nextDialog = null; /* set right before an openOverlay() call that has no handle on its overlay */
+  function openOverlay(html, name) {
     var host = document.createElement("div");
     host.innerHTML = html;
     var overlay = host.firstElementChild;
     document.body.appendChild(overlay);
+    name = name || nextDialog; nextDialog = null;
+    if (name) dialogOpened(name, overlay);
     overlay.addEventListener("click", function (e) { if (e.target === overlay) closeOverlay(overlay); });
     overlay.querySelectorAll("[data-close]").forEach(function (b) {
       b.addEventListener("click", function () { closeOverlay(overlay); });
@@ -627,6 +659,7 @@ window.QL = (function () {
   function closeOverlay(overlay) {
     if (overlay.classList.contains("is-closing")) return;
     overlay.classList.add("is-closing");
+    if (overlay.dataset && overlay.dataset.dialog) dialogClosed(overlay.dataset.dialog);
     var surface = overlay.querySelector(".sidepanel, .dialog");
     var removed = false;
     var done = function () { if (removed) return; removed = true; overlay.remove(); };
@@ -744,6 +777,7 @@ window.QL = (function () {
       return entry(e.date, i === 0 ? '<span class="tag tag-positive">Current</span>' : "",
         "Published by " + e.by + " · " + e.count + (e.count === 1 ? " change" : " changes"), e.changes || []);
     }).join("");
+    nextDialog = "version-history";
     openOverlay(
       '<div class="overlay is-right"><div class="sidepanel" role="dialog" aria-modal="true" aria-labelledby="vh-title">' +
       '<div class="sp-header"><div class="sp-toolbar"><div class="sp-actions">' +
@@ -841,6 +875,7 @@ window.QL = (function () {
       '<button class="btn btn-primary" id="pubGo"></button></div>' +
       "</div></div>"
     );
+    dialogOpened("publish", overlay);
     var go = overlay.querySelector("#pubGo");
     var summaryEl = overlay.querySelector("#pubSummary");
     function selected() {
@@ -998,6 +1033,7 @@ window.QL = (function () {
 
   /* ── shared dialogs ── */
   function videoDialog() {
+    nextDialog = "video";
     openOverlay(
       '<div class="overlay"><div class="dialog dialog-s" role="dialog" aria-modal="true" aria-labelledby="vid-title">' +
       '<button class="dialog-close" aria-label="Close" data-close><i data-icon="cross"></i></button>' +
@@ -1052,6 +1088,7 @@ window.QL = (function () {
       "<p>To categorize relevant questions surrounding a similar subject we also provide topics. The questions you see within a topic are all questions belonging to this specific question set. Your results will show scores per question.</p>" +
       "</div></div></div></div>"
     );
+    dialogOpened("learn-more", overlay);
     overlay.querySelectorAll("[data-anchor]").forEach(function (b) {
       b.addEventListener("click", function () {
         var el = overlay.querySelector("#" + b.getAttribute("data-anchor"));
@@ -1072,6 +1109,7 @@ window.QL = (function () {
       }
       return '<div class="ql-var-row text-medium">' + html + "</div>";
     }).join("");
+    nextDialog = "variable";
     openOverlay(
       '<div class="overlay"><div class="dialog dialog-s" role="dialog" aria-modal="true" aria-labelledby="var-title">' +
       '<button class="dialog-close" aria-label="Close" data-close><i data-icon="cross"></i></button>' +
@@ -1234,6 +1272,7 @@ window.QL = (function () {
       '<button class="btn btn-primary" id="epSave">Save</button>' +
       "</div></div></div>"
     );
+    dialogOpened("question-settings", overlay);
     var type = q.type;
     overlay.querySelector("#epScale").addEventListener("click", function (e) {
       e.stopPropagation();
@@ -1317,6 +1356,7 @@ window.QL = (function () {
       '<button class="btn btn-primary" id="aqAdd">Add question</button>' +
       "</div></div></div>"
     );
+    dialogOpened("add-question", overlay);
     var type = "L", topicIndex = -1;
     overlay.querySelector("#aqScale").addEventListener("click", function (e) {
       e.stopPropagation();
@@ -1359,6 +1399,7 @@ window.QL = (function () {
       '<button class="btn btn-primary" id="rnSave">Save</button>' +
       "</div></div></div>"
     );
+    dialogOpened("rename", overlay);
     overlay.querySelector("#rnSave").addEventListener("click", function () {
       var v = overlay.querySelector("#rnName").value.trim();
       if (!v) return;
@@ -1389,7 +1430,8 @@ window.QL = (function () {
     updatePublish();
     refreshInboxTab();
     /* deep link from the toolbar's Screens: the version history on arrival */
-    try { if (new URLSearchParams(location.search).get("open") === "history") setTimeout(historyPanel, 120); } catch (e) {}
+    var dlg = dialogFromURL();
+    if (dlg === "version-history" || dlg === "history") setTimeout(historyPanel, 120);
   }
   function initShell() {
     var learn = document.getElementById("btnLearnMore");
@@ -1450,7 +1492,8 @@ window.QL = (function () {
     var cur = document.querySelector(".app-main-inner");
     var curPh = cur && cur.querySelector(".ph");
     if (!curPh) { go(url); return; }
-    return fetch(url, { credentials: "same-origin" }).then(function (r) {
+    var fileURL = url.replace(DLG_RE, ""); /* a dialog suffix is not a file */
+    return fetch(fileURL, { credentials: "same-origin" }).then(function (r) {
       if (!r.ok) throw new Error(r.status);
       return r.text();
     }).then(function (html) {
@@ -1459,7 +1502,7 @@ window.QL = (function () {
       var ph = inner && inner.querySelector(".ph");
       if (!ph) throw new Error("not a tab page");
       return ensureAssets(doc).then(function () {
-        var key = url.split("/").pop().split("?")[0];
+        var key = fileURL.split("/").pop().split("?")[0];
         if (!document.querySelector('style[data-tab-style="' + key + '"]')) {
           doc.querySelectorAll("head style").forEach(function (st) {
             var el = document.createElement("style");
@@ -1523,6 +1566,7 @@ window.QL = (function () {
   }
 
   return {
+    dialogFromURL: dialogFromURL, dialogOpened: dialogOpened, dialogClosed: dialogClosed, urlWithDialog: urlWithDialog,
     publishChanges: publishChanges, publishTemplate: publishTemplate, tplPending: tplPending,
     themesOf: themesOf, viewMenu: viewMenu, LANGS: LANGS, getLang: getLang, setLang: setLang,
     historyPanel: historyPanel,
